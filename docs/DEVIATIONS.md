@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — GitHub repo is PUBLIC, SPEC expected private
+
+**Phase / Task:** P1.T5 / P1.T6 (discovered)
+
+**Spec said:**
+TASKS.md P1.T5: "Create remote `prx-predictor` repo on GitHub (private)." P8 deployment assumes a private repo.
+
+**What was actually done:**
+The pre-existing repo `https://github.com/sleipnir029/choochootrain` is **public** (`private: false`, `visibility: public`) — confirmed because the unauthenticated GitHub Actions/repo API returned data during P1.T6 verification. Nothing was changed; flagging the mismatch. Branches `phase-0-*` and `phase-1-*` (pushed in P1.T5) are therefore publicly visible.
+
+**Why:**
+The repo predates this work (created outside the task flow) and was set public. Not noticed in P1.T5 because `gh` is unavailable to query visibility; surfaced in P1.T6 when the public API responded.
+
+**Impact:**
+All committed code/history is public. No secrets are committed yet (`.env`/keys are gitignored; DeepSeek key arrives in Phase 7) — so no leak so far, but this must be resolved before any secret-bearing work. Decision needed from Rahat: make the repo private (GitHub → Settings → Danger Zone → Change visibility, or `gh repo edit --visibility private`) or consciously keep it public. I cannot change visibility (no `gh`/auth).
+
+**Rahat approval:** pending (decision required)
+
+**Related commit:** `2ebe2de` (P1.T6, where it was discovered)
+
 ### 2026-06-04 — vlrggapi team sub-resources are q-variants, not separate paths (affects Phase 2)
 
 **Phase / Task:** P1.T3 (impacts P2.T3, P2.T8, and `scheduler` roster sync)

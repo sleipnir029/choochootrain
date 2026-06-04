@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P1.T5 — GitHub repo + initial push
-**Next task:** P1.T6 — CI workflow stub
+**Last completed task:** P1.T6 — CI workflow stub
+**Next task:** P1.T7 — Combined docker-compose dry-run
 **Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
@@ -68,6 +68,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 12:30 UTC — P1.T6 — CI workflow stub
+
+**Done:** Added `.github/workflows/ci.yml` (Python 3.11 syntax check via `compileall`, pytest placeholder, build `docker/Dockerfile` with no push) on `main` + `phase-*` + PRs + manual dispatch. Added minimal `docker/Dockerfile` stub (`FROM python:3.11-slim`, `COPY requirements.txt`). Pre-validated all three steps locally before pushing.
+
+**Learned or surprised:** Two gotchas caught locally: (1) bare `pytest` at repo root collects the **vendored vlrggapi submodule's tests** (import-fail, no fastapi in our env) — fixed with a 3-line `pytest.ini` (`testpaths = tests`, `--ignore=vendor`); a small addition beyond T6's literal touch list but needed for correctness. (2) pytest exits **5** ("no tests collected") which fails CI, so the workflow treats exit 5 as pass (`pytest -q || [ $? -eq 5 ]`).
+
+**Verification (local):** `python -m compileall -q . -x 'vendor/.*'` → exit 0. `python -m pytest -q` → exit 5, guard → PASS. `docker build -f docker/Dockerfile -t prx-app:ci .` → success. **CI run on GitHub Actions to be confirmed after push** (done-when = "CI passes on a no-op push").
+
+**Files touched:**
+- `.github/workflows/ci.yml` (created)
+- `docker/Dockerfile` (created — replaces the `.gitkeep`)
+- `pytest.ini` (created — scope pytest to our tests/)
+
+**Commit:** `<pending>` — `phase-1.task-6: CI workflow stub`
 
 ### 2026-06-04 12:18 UTC — P1.T5 — GitHub repo + initial push
 

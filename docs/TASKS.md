@@ -19,10 +19,10 @@ Granular task list for Claude Code, organized by phase. Follow in order. Don't s
 **Estimated effort:** 1 day.
 
 ### P0.T1 — Bootstrap Python environment
-- **What:** Create Python 3.11 venv. Install pinned versions of: pandas, numpy, scikit-learn, statsmodels, bambi, jupyterlab, pytest, structlog, httpx.
+- **What:** Create Python 3.11 venv. Install pinned versions of: pandas, numpy, scikit-learn, statsmodels, bambi, marimo, pytest, structlog, httpx. (Note: marimo, NOT jupyterlab — see `docs/MARIMO_CONVENTIONS.md` before writing any notebook.)
 - **Touch:** `.python-version`, `pyproject.toml` or `requirements.txt`, `README.md` (one-line setup instructions)
 - **Don't touch:** any source file
-- **Done when:** `pip install` completes in a fresh venv with no resolver conflicts; `python -c "import bambi"` succeeds.
+- **Done when:** `pip install` completes in a fresh venv with no resolver conflicts; `python -c "import bambi"` and `python -c "import marimo"` both succeed.
 
 ### P0.T2 — Download Peng IEEE DataPort dataset
 - **What:** Download the "Valorant Champions Tour 2024: Pacific and EMEA Round Data" dataset from IEEE DataPort. Save raw file to `data/external/peng_2024.csv` (or `.xlsx`, whichever the source provides).
@@ -31,24 +31,24 @@ Granular task list for Claude Code, organized by phase. Follow in order. Don't s
 - **Done when:** file exists, expected row count ~1,301.
 
 ### P0.T3 — EDA notebook with data inspection
-- **What:** Create `notebooks/00_peng_eda.ipynb`. Load dataset, show column dtypes, missing values, basic descriptives, target balance.
-- **Touch:** `notebooks/00_peng_eda.ipynb`
+- **What:** Read `docs/MARIMO_CONVENTIONS.md` first. Then create `notebooks/00_peng_eda.py` as a marimo notebook (`marimo edit notebooks/00_peng_eda.py` to scaffold). Load dataset, show column dtypes, missing values, basic descriptives, target balance.
+- **Touch:** `notebooks/00_peng_eda.py`
 - **Don't touch:** main source code
-- **Done when:** notebook runs end-to-end; markdown cells document each finding in one line.
+- **Done when:** `marimo run notebooks/00_peng_eda.py` renders end-to-end; markdown cells document each finding in one line.
 
 ### P0.T4 — Clean and reshape into features + target
 - **What:** Build a clean DataFrame with three features (team loadout diff, ult availability diff, ult points diff) + target (round_won). Handle NaN rows per the dataset notes.
-- **Touch:** `notebooks/01_peng_baseline.ipynb`
+- **Touch:** `notebooks/01_peng_baseline.py` (marimo)
 - **Done when:** DataFrame shape printed; no NaN in the kept rows; target balance shown.
 
 ### P0.T5 — Fit baseline logistic regression
 - **What:** Train sklearn `LogisticRegression` on the three features. 70/30 time-aware split if dataset includes dates; otherwise random with seed=42.
-- **Touch:** same notebook as T4
+- **Touch:** same notebook as T4 (`notebooks/01_peng_baseline.py`)
 - **Done when:** model fit; coefficients printed; sign and magnitude of teamLO coef checked against Peng (should dominate).
 
 ### P0.T6 — Compute test accuracy on holdout
 - **What:** Report accuracy on holdout. Target: ~60% (Peng reported 60.61%).
-- **Touch:** same notebook
+- **Touch:** same notebook (`notebooks/01_peng_baseline.py`)
 - **Done when:** accuracy printed; if below 55% or above 65%, investigate before claiming pass.
 
 ### P0.T7 — Phase summary
@@ -226,7 +226,7 @@ Granular task list for Claude Code, organized by phase. Follow in order. Don't s
 
 ### P3.T8 — Validation on holdout
 - **What:** Run predictions on all maps from Masters Toronto 2025 + Masters Santiago 2026. Report: accuracy, Brier score, calibration plot. Compare against Peng baseline.
-- **Touch:** `notebooks/02_model_validation.ipynb`
+- **Touch:** `notebooks/02_model_validation.py` (marimo)
 - **Done when:** notebook produces accuracy/Brier numbers; results recorded in PROGRESS.md.
 
 ### P3.T9 — Phase summary
@@ -258,7 +258,7 @@ Granular task list for Claude Code, organized by phase. Follow in order. Don't s
 
 ### P4.T4 — Validation
 - **What:** Compare predicted vs actual on the Masters Toronto 2025 holdout. Report mean error per stat.
-- **Touch:** `notebooks/03_player_skill_validation.ipynb`
+- **Touch:** `notebooks/03_player_skill_validation.py` (marimo)
 - **Done when:** notebook produces error metrics; results in PROGRESS.md.
 
 ### P4.T5 — Phase summary

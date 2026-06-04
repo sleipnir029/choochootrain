@@ -100,7 +100,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `.gitignore` (modified — ignore generated logs/reports)
 - `docs/DEVIATIONS.md` (modified — validation anomalies)
 
-**Commit:** `<pending>` — `phase-2.task-12: ingestion validation script`
+**Commit:** `ee4f6fc` — `phase-2.task-12: ingestion validation script`
 
 ### 2026-06-04 21:46 UTC — P2.T9 — Bulk pull 2024 (complete)
 

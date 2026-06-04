@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T6 — Match details ingestion (maps/rounds/map_player_stats/map_team_economy) (`ingestion/match_details.py`, `tests/test_match_details.py`) — verified on 1 match; full bulk is T9–T11
-**Next task:** P2.T7 — Player profile ingestion — resolve distinct handles in `map_player_stats` → `player_id`, upsert `players`, backfill (`ingestion/players.py`, `tests/test_players_ingestion.py`)
+**Last completed task:** P2.T7 — Player profile ingestion (resolve handles → player_id, backfill) (`ingestion/players.py`, `tests/test_players_ingestion.py`) — verified on 1 match's roster
+**Next task:** P2.T8 — Roster history ingestion (`ingestion/roster_history.py`, `tests/test_roster_history.py`) — uses `/v2/team?id=...&q=transactions`
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +87,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 15:52 UTC — P2.T7 — Player profile ingestion (resolve handles → player_id)
+
+**Done:** Added `ingestion/players.py` — for each distinct unresolved handle in `map_player_stats`, resolves a vlr `player_id` via `/v2/search` (exact name match; ambiguous → disambiguate by team history), upserts the `/v2/player` profile into `players` (handle, real_name, country, best-effort `current_team_id` by team-name match), and backfills `map_player_stats.player_id`. CLI: `python -m ingestion.players --db data/prx.db`. Added `tests/test_players_ingestion.py` (4 tests).
+
+**Learned or surprised:** `/v2/search` returns multiple exact-name hits (alt/fan accounts) — resolved via team-context. vlrggapi **glues date ranges onto past-team names** (`'Karmine CorpDecember 2023 – …'`), so team matching had to be substring-based (this fix turned 2 unresolved → 0). `/v2/player` `current_team` has no ID (matched by name). `/v2/player` is rate-limited (429) — the client backoff handled it (~55s wait once). All per DEVIATIONS 2026-06-04.
+
+**Verification:** `pytest tests/test_players_ingestion.py` → 4 passed (parse, unique + team-context disambiguation, glued-name substring, unresolved, idempotency, backfill). Full suite **31 passed**. Live on match 312765's stats: **10/10 handles resolved**, 20/20 stat rows backfilled (0 NULL), all 10 players have real_name; `current_team_id` set where the team is in our DB; `foreign_key_check` clean.
+
+**Files touched:**
+- `ingestion/players.py` (created)
+- `tests/test_players_ingestion.py` (created)
+- `docs/DEVIATIONS.md` (modified — resolution heuristics)
+
+**Commit:** `<pending>` — `phase-2.task-7: player profile ingestion (resolve handles + backfill)`
 
 ### 2026-06-04 15:43 UTC — P2.T6 — Match details ingestion (maps/rounds/stats/economy)
 

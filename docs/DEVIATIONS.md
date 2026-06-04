@@ -57,6 +57,30 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — Player handle→ID resolution heuristics (P2.T7)
+
+**Phase / Task:** P2.T7
+
+**Spec said:**
+TASKS.md P2.T7: "extracts player_ids from `map_player_stats`, fetches `/v2/player?id={id}` for each." (Assumed IDs already present.)
+
+**What was actually done:**
+Since `map_player_stats` holds handles, not IDs (P2.T6 schema change), `ingestion/players.py` resolves each distinct unresolved handle via `/v2/search`:
+- exactly one exact (case-insensitive) name match → use it;
+- several (alt/fan/dup accounts are common) → fetch each candidate's `/v2/player` and pick the one whose **team history matches a team the handle actually played for** (from `map_player_stats.team_id_at_match`); 0 or >1 matches → leave `player_id` NULL and **log** (correctness over recall).
+
+Two wrinkles found and handled:
+- vlrggapi **glues the date range onto past-team names** (e.g. `'Karmine CorpDecember 2023 – November 2024'`), so team matching is by **substring**, not equality (this initially left 2/10 handles unresolved on the test match).
+- `/v2/player`'s `current_team` has **no ID** → `players.current_team_id` is matched by team **name** against the `teams` table (NULL if absent/ambiguous; so it's NULL for players whose current team isn't a tier-1 team we've ingested).
+Also observed: `/v2/player`/`/v2/search` are **rate-limited** (HTTP 429); the VlrClient backoff handles it (waited ~55s once) — relevant for the bulk runs.
+
+**Impact:**
+On the verification match (312765) all 10 handles resolved (after the substring fix) with real names + countries. Unresolved handles in the full bulk will be logged and remain `player_id=NULL` until handled.
+
+**Rahat approval:** N/A (implementation detail within the approved T6/T7 approach).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — map_player_stats keyed by handle; economy buckets mapped; schema change
 
 **Phase / Task:** P2.T6 (schema change — affects P2.T7, Phase 4)

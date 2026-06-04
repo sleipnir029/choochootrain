@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P1.T1 — Vendor vlrggapi
-**Next task:** P1.T2 — Build vlrggapi Docker image locally
+**Last completed task:** P1.T2 — Build vlrggapi Docker image locally
+**Next task:** P1.T3 — Smoke-test the endpoints we'll rely on
 **Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
@@ -68,6 +68,20 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 11:52 UTC — P1.T2 — Build vlrggapi Docker image locally
+
+**Done:** Built the vlrggapi image from the vendored source (`docker build -t vlrggapi:a6075fe vendor/vlrggapi`, 186MB) and ran it (`docker run -d --name vlrggapi -p 3001:3001`). `/v2/health` returns `{"status":"success", service: Healthy, http_client: Healthy}` — both vlrggapi and its vlr.gg upstream reachability are healthy. Container shows `Up (healthy)` via Docker's own healthcheck. No repo files changed (upstream provides the Dockerfile).
+
+**Learned or surprised:** Upstream's Dockerfile is on `python:3.14.5-alpine` (multi-stage, uv-based), not the 3.11 the SPEC assumed — logged as a minor deviation (no impact on our app; vlrggapi is HTTP-isolated). Build was fast (~Alpine + uv).
+
+**Verification:** `docker ps` → `vlrggapi Up (healthy) 0.0.0.0:3001->3001`. `curl http://localhost:3001/v2/health` → `status: success`, service + http_client both Healthy. **NOTE: the container is left running** for P1.T3 (endpoint smoke tests); stop with `docker rm -f vlrggapi` if needed.
+
+**Files touched:**
+- none (image/container are runtime artifacts, not committed)
+- `docs/DEVIATIONS.md` (modified — Python 3.14 note)
+
+**Commit:** `<pending>` — docs only (P1.T2 builds no repo files)
 
 ### 2026-06-04 11:45 UTC — P1.T1 — Vendor vlrggapi
 

@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — vlrggapi upstream is on Python 3.14, not 3.11 (minor)
+
+**Phase / Task:** P1.T2
+
+**Spec said:**
+CLAUDE.md tech stack: "Python 3.11 (matches vlrggapi pinned version)."
+
+**What was actually done:**
+Nothing changed in our code. Noting that the vendored vlrggapi (pinned `a6075fec`) builds on `python:3.14.5-alpine` in its Dockerfile — upstream has moved well past 3.11.
+
+**Why:**
+Discovered while reading the vendored Dockerfile before building (P1.T2). Upstream upgraded since the SPEC was written.
+
+**Impact:**
+None on our app. The vlrggapi service runs in its own container with its own Python; our prediction app/ingestion still targets Python 3.11 (env `choochoo`) and talks to vlrggapi only over HTTP. The CLAUDE.md parenthetical "(matches vlrggapi pinned version)" is simply outdated — our 3.11 choice stands on its own. Flagging so the rationale isn't trusted as still-true.
+
+**Rahat approval:** N/A (minor)
+
+**Related commit:** `db09a6b` (P1.T1 vendoring, where the pin was set)
+
 ### 2026-06-04 — Phase 0 validation deferred; Phase 1 pulled forward (Peng dataset unobtainable)
 
 **Phase / Task:** P0.T2 (and downstream P0.T3–T6)

@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P1.T4 — Initialize project repo skeleton
-**Next task:** P1.T5 — GitHub repo + initial push
+**Last completed task:** P1.T5 — GitHub repo + initial push
+**Next task:** P1.T6 — CI workflow stub
 **Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
@@ -68,6 +68,19 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 12:18 UTC — P1.T5 — GitHub repo + initial push
+
+**Done:** The GitHub remote already existed (`origin` → `https://github.com/sleipnir029/choochootrain.git`) with `main` pushed (initial commit), so no repo creation was needed. Per Rahat, pushed both feature branches so the work is backed up: `phase-0-peng-bootstrap` and `phase-1-vlrggapi-setup` are now on origin and tracking. `main` left untouched (merge happens at phase-end per git hygiene).
+
+**Learned or surprised:** Repo is named **choochootrain**, not the SPEC/TASKS placeholder "prx-predictor" — keeping the existing name (matches the working dir). `gh` CLI is not installed, so repo **visibility (private?) could not be verified programmatically** — Rahat to confirm the repo is private if that matters (SPEC §P1.T5 expected private).
+
+**Verification:** `git push -u origin <branch>` succeeded for both branches (`* [new branch]` + tracking set). `git branch -a` shows both `remotes/origin/phase-0-...` and `remotes/origin/phase-1-...`.
+
+**Files touched:**
+- none (git remote operations only)
+
+**Commit:** `<pending>` — docs only
 
 ### 2026-06-04 12:12 UTC — P1.T4 — Initialize project repo skeleton
 

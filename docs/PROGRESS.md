@@ -28,9 +28,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T8 — Roster history ingestion (from player profiles). Plus: universal VlrClient response cache + `bulk_ingest --skip-matches` (Rahat-requested).
-**Next task:** P2.T9 — finish the 2024 bulk (PAUSED): match data done; resume players+roster with `--skip-events --skip-matches`. Then T10 (2025), T11 (2026).
-**Open blockers:** none. The 2024 bulk is paused mid-run (resumable); rate-limiting (429) makes the player/roster stages slow.
+**Last completed task:** P2.T9 — Bulk pull 2024 (complete): 436 matches / 1,105 maps / 23,401 rounds / 11,050 stats / 267 players / 515 roster rows; 99.96% handles resolved.
+**Next task:** P2.T10 — Bulk pull 2025 (`python -m scripts.bulk_ingest --year 2025 ...`), then T11 (2026 to date).
+**Open blockers:** none. Rate-limiting (429) makes the player/roster stages slow; caching mitigates re-runs. 4 one-off 2024 handles unresolved (by design).
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -88,6 +88,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 21:46 UTC — P2.T9 — Bulk pull 2024 (complete)
+
+**Done:** Completed the full 2024 bulk via `scripts/bulk_ingest.py` (run in two halves around a pause: match phases, then a cached `--skip-matches` resume for players+roster). All 15 2024 tier-1 events ingested end-to-end. Log saved to `logs/bulk_ingest_2024.log`.
+
+**Warehouse state (data/prx.db, FK check clean):** events 43, matches 436 (435 with full map detail; 1 detail_failure — a match with no maps, non-fatal), maps 1,105, rounds 23,401, map_player_stats 11,050, map_team_economy 1,630, teams 47, players 267, roster_history 515.
+
+**Player resolution:** 11,046/11,050 stat rows resolved (**99.96%**). 4 unresolved one-off handles (`EQ118`, `dank1ng`, `spicyuuu`, `zhang yanqi` — likely CN subs/stand-ins; no exact search match), left `player_id` NULL by design.
+
+**Learned or surprised:** rate-limiting (429) dominated wall-clock; the player-resolution stage is by far the slowest. The cache (added mid-task) makes future re-runs cheap. `economy=0` on some matches (empty economy block upstream).
+
+**Verification:** counts above queried post-run; `PRAGMA foreign_key_check` empty. `bulk_done` logged (resume: players_resolved=251, unresolved=4, roster_rows=515; match-phase counts from the earlier half in the same log).
+
+**Files touched:** none new (orchestrator `scripts/bulk_ingest.py` committed earlier at `4b45ccb`; cache at `c7b6dcf`). `logs/bulk_ingest_2024.log` (gitignored).
+
+**Commit:** docs-only (this entry).
 
 ### 2026-06-04 17:20 UTC — Caching + resume; 2024 bulk paused mid-run
 

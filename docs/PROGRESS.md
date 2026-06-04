@@ -69,6 +69,19 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 12:40 UTC — Secret hygiene (Rahat request; repo stays public)
+
+**Done:** Rahat chose to keep the repo public. Hardened `.gitignore` to ignore `.env` + all `.env.*` (keeping `!.env.example`), and added `.env.example` with placeholders only (`VLRGGAPI_URL`, empty `DEEPSEEK_API_KEY`). Resolves the public-vs-private flag from P1.T6.
+
+**Verification:** `git check-ignore` → `.env`, `.env.local`, `.env.production` all ignored; `.env.example` tracked. A test `.env` containing a fake key was invisible to `git status`.
+
+**Files touched:**
+- `.gitignore` (modified — `.env.*` + `!.env.example`)
+- `.env.example` (created)
+- `docs/DEVIATIONS.md` (modified — resolution entry)
+
+**Commit:** `<pending>` — `chore: secret hygiene — gitignore .env*, add .env.example`
+
 ### 2026-06-04 12:30 UTC — P1.T6 — CI workflow stub
 
 **Done:** Added `.github/workflows/ci.yml` (Python 3.11 syntax check via `compileall`, pytest placeholder, build `docker/Dockerfile` with no push) on `main` + `phase-*` + PRs + manual dispatch. Added minimal `docker/Dockerfile` stub (`FROM python:3.11-slim`, `COPY requirements.txt`). Pre-validated all three steps locally before pushing.

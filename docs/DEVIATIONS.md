@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — Resolution: repo stays PUBLIC; secrets via gitignored .env
+
+**Phase / Task:** P1.T5/T6 follow-up (resolves the "repo is PUBLIC" entry below)
+
+**Spec said:**
+P1.T5 expected a private repo.
+
+**What was actually done:**
+Rahat decided to **keep the repo public**. To make that safe, hardened secret handling: `.gitignore` now ignores `.env` and all `.env.*` variants while allowing the committed template `.env.example` (`!.env.example`). Added `.env.example` (placeholders only — `VLRGGAPI_URL` default + empty `DEEPSEEK_API_KEY`). Verified `git check-ignore` ignores `.env`/`.env.local`/`.env.production` and that a real `.env` is invisible to git.
+
+**Why:**
+Rahat's explicit choice (public is fine), with the constraint that keys/secrets must live in `.env` and never be committed.
+
+**Impact:**
+Supersedes the "private" requirement in P1.T5/P8 — these docs' "private" wording is now intentionally not followed. All future secret-bearing work (DeepSeek key in Phase 7, any tokens) must go in `.env` only. No secrets committed to date.
+
+**Rahat approval:** yes (keep public; secrets in gitignored .env)
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — GitHub repo is PUBLIC, SPEC expected private
 
 **Phase / Task:** P1.T5 / P1.T6 (discovered)

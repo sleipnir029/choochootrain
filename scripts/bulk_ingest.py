@@ -61,10 +61,11 @@ def _match_ids_for_event(db_path: str, event_id: int) -> list[int]:
         conn.close()
 
 
-async def run(year: int, db_path: str, *, only_event=None, skip_events=False, skip_matches=False) -> dict:
+async def run(year: int, db_path: str, *, only_event=None, skip_events=False,
+              skip_matches=False, min_interval: float = 0.0) -> dict:
     totals = {"events": 0, "matches": 0, "maps": 0, "rounds": 0, "player_stats": 0,
               "economy": 0, "detail_failures": 0, "event_failures": 0}
-    async with VlrClient() as client:
+    async with VlrClient(min_interval=min_interval) as client:
         if not skip_events:
             logger.info("events_ingest_start")
             n = await ingest_events(db_path, client=client)
@@ -118,13 +119,16 @@ def main(argv=None) -> int:
     parser.add_argument("--skip-events", action="store_true")
     parser.add_argument("--skip-matches", action="store_true",
                         help="Resume: skip the events/matches/details phases, run only players + roster.")
+    parser.add_argument("--min-interval", type=float, default=0.0,
+                        help="Min seconds between network requests (gentle pacing for vlr.gg).")
     args = parser.parse_args(argv)
 
     # INFO-level structlog (suppresses per-request DEBUG noise from vlr_client).
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
 
     summary = asyncio.run(run(args.year, args.db, only_event=args.only_event,
-                              skip_events=args.skip_events, skip_matches=args.skip_matches))
+                              skip_events=args.skip_events, skip_matches=args.skip_matches,
+                              min_interval=args.min_interval))
     print(f"bulk_ingest {args.year}: {summary}")
     return 0
 

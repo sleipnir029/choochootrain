@@ -1,6 +1,7 @@
 """Tests for ingestion.vlr_client's disk cache (uses httpx.MockTransport, no net)."""
 
 import asyncio
+import time
 
 import httpx
 
@@ -58,6 +59,22 @@ def test_cache_disabled_always_fetches(tmp_path):
 
     asyncio.run(run())
     assert counter["n"] == 2
+
+
+def test_min_interval_throttles_network(tmp_path):
+    counter = {"n": 0}
+
+    async def run():
+        async with VlrClient(base_url="http://test", cache=False, min_interval=0.05,
+                             transport=_counting_transport(counter)) as c:
+            t0 = time.monotonic()
+            for _ in range(3):
+                await c.get_json("/v2/x")
+            return time.monotonic() - t0
+
+    elapsed = asyncio.run(run())
+    assert counter["n"] == 3
+    assert elapsed >= 0.09  # 2 inter-request gaps of ~0.05s
 
 
 def test_non_success_envelope_not_cached(tmp_path):

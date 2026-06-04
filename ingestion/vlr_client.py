@@ -25,6 +25,7 @@ import asyncio
 import hashlib
 import json
 import os
+import time
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -55,6 +56,7 @@ class VlrClient:
         max_retries: int = MAX_RETRIES,
         cache: bool = True,
         cache_dir: str | None = None,
+        min_interval: float | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.base_url = (
@@ -64,6 +66,12 @@ class VlrClient:
         self._max_retries = max_retries
         self._cache_enabled = cache
         self._cache_dir = Path(cache_dir or os.environ.get("VLR_CACHE_DIR", DEFAULT_CACHE_DIR))
+        # Minimum seconds between *network* requests (cache hits don't count).
+        # Gentle pacing to avoid tripping vlr.gg's rate limit / vlrggapi circuit breaker.
+        self._min_interval = float(
+            min_interval if min_interval is not None else os.environ.get("VLR_MIN_INTERVAL", 0.0)
+        )
+        self._last_request = 0.0
         self._transport = transport
         self._client: httpx.AsyncClient | None = None
 
@@ -120,6 +128,13 @@ class VlrClient:
             if cached is not None:
                 logger.debug("cache_hit", path=path, params=query)
                 return cached
+
+        # Throttle: keep at least min_interval between network requests.
+        if self._min_interval > 0:
+            wait = self._min_interval - (time.monotonic() - self._last_request)
+            if wait > 0:
+                await asyncio.sleep(wait)
+        self._last_request = time.monotonic()
 
         attempt = 0
         while True:

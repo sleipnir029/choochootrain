@@ -83,7 +83,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `.python-version` (created)
 - `README.md` (modified)
 
-**Commit:** `76e616b` — `phase-0.task-1: bootstrap python environment`
+**Commit:** `bdd8d4c` — `phase-0.task-1: bootstrap python environment`
 
 ---
 

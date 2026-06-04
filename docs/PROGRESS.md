@@ -27,10 +27,10 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 ## Current state
 
-**Phase:** 0
+**Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
 **Last completed task:** P0.T1 — Bootstrap Python environment
-**Next task:** P0.T2 — Download Peng IEEE DataPort dataset
-**Open blockers:** none
+**Next task:** P1.T1 — Vendor vlrggapi
+**Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
 
@@ -68,6 +68,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 11:38 UTC — P0.T2 — Deferred (Peng dataset unobtainable); reordering to Phase 1
+
+**Done:** Did not download the Peng dataset — it's behind a paid IEEE DataPort subscription with no free download. Investigated alternatives with Rahat: no free source has Peng's ultimate features (vlr.gg never exposed them; the author hand-charted them). A reference parser `Data.java` was added to the repo root but its raw input `VCT Data.csv` isn't available. vlr.gg does expose per-round loadout values (a loadout-only model is feasible later). Per Rahat's decision, **deferred Phase 0 validation (T2–T6) and pulled Phase 1 forward**. Created `data/external/` (gitignored) as the eventual drop-in. Full reasoning in DEVIATIONS.md.
+
+**Learned or surprised:** The Peng dataset's value is precisely the hand-charted per-round ultimate economy — unrecoverable from any free/automated source. Our eventual Phase 0 validation will be loadout-only (1-feature), not Peng's 3-feature model.
+
+**Verification:** Confirmed IEEE paywall (dataset page: "LOGIN TO ACCESS DATASET FILES", paid subscription). Confirmed via vlr.gg economy tab that per-round numeric loadout values exist (e.g. "5.5k", "13.3k") and round winners are recoverable from the round-result strip. Public vlrggapi healthy (`/health` → Healthy).
+
+**Files touched:**
+- `data/external/.gitkeep` (created)
+- `.gitignore` (modified — ignore `data/external/*` except `.gitkeep`)
+- `docs/DEVIATIONS.md` (modified — reorder entry)
+- `Data.java` (added at repo root by Rahat as reference; left untracked)
+
+**Commit:** `<pending>` — `phase-0.task-2: defer (peng dataset unobtainable), reorder to phase 1`
 
 ### 2026-06-04 10:54 UTC — P0.T1 — Bootstrap Python environment
 

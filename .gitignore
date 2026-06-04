@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# PRX Predictor — external datasets (licensed; e.g. IEEE DataPort Peng xlsx). Keep the dir, ignore data files.
+data/external/*
+!data/external/.gitkeep

@@ -81,4 +81,4 @@ Faced with "build a Phase-0 scraper now (early vlr.gg use)" vs "reorder," Rahat 
 
 **Rahat approval:** yes (chose "free alternative," then "only vlr.gg," then "defer T2, do Phase 1 first").
 
-**Related commit:** `<this commit>`
+**Related commit:** `552a7b2`

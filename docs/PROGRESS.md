@@ -83,7 +83,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `docs/DEVIATIONS.md` (modified — reorder entry)
 - `Data.java` (added at repo root by Rahat as reference; left untracked)
 
-**Commit:** `<pending>` — `phase-0.task-2: defer (peng dataset unobtainable), reorder to phase 1`
+**Commit:** `552a7b2` — `phase-0.task-2: defer (peng dataset unobtainable), reorder to phase 1`
 
 ### 2026-06-04 10:54 UTC — P0.T1 — Bootstrap Python environment
 

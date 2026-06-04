@@ -101,7 +101,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `tests/test_matches_ingestion.py` (created)
 - `docs/DEVIATIONS.md` (modified — match/details rationale)
 
-**Commit:** `<pending>` — `phase-2.task-5: matches ingestion (per event via match/details)`
+**Commit:** `cabcce3` — `phase-2.task-5: matches ingestion (per event via match/details)`
 
 ### 2026-06-04 15:18 UTC — P2.T4 — Events ingestion (curated tier-1 registry)
 

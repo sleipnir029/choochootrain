@@ -99,7 +99,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Files touched:**
 - `ingestion/vlr_client.py` (created)
 
-**Commit:** `<pending>` — `phase-2.task-2: base async HTTP client for vlrggapi`
+**Commit:** `4578220` — `phase-2.task-2: base async HTTP client for vlrggapi`
 
 ### 2026-06-04 14:44 UTC — P2.T1 — Implement SQLite schema
 

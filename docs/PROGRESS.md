@@ -89,6 +89,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 23:35 UTC — P2.T10 done (2025); T11 (2026) failed on upstream circuit breaker; bulk resilience fix
+
+**Done:** **P2.T10 — 2025 bulk complete:** 15 events, 504 matches, 1,277 maps, 26,974 rounds, 12,770 player_stats, 331 players resolved (24 unresolved), 709 roster rows; 1 detail_failure. All 15 2025 events have matches. Warehouse now spans 2024+2025: 940 matches, 2,382 maps, 50,375 rounds, 23,820 player_stats, 421 players.
+
+**P2.T11 — 2026 FAILED (0 ingested):** vlrggapi's **circuit breaker to vlr.gg tripped** after hours of sustained load — `/v2/events/matches` returns `503 "Circuit open for www.vlr.gg — request blocked"`. The 2026 run got 0 matches (first events returned empty listings as the breaker began tripping; event 2863 then raised and aborted the year).
+
+**Bug fixed:** `scripts/bulk_ingest.py` did not guard the per-event `ingest_event_matches` call (only the details loop), so one event's transient failure aborted the whole year. Now wrapped in try/except → logs `event_failed`, increments `event_failures`, and continues. (compile + 43 tests green.)
+
+**Next:** re-run 2026 after a vlr.gg cooldown (container stopped to let upstream recover). `python -m scripts.bulk_ingest --year 2026 --db data/prx.db --skip-events`. The cache + resilience fix make this safe/resumable.
+
+**Files touched:**
+- `scripts/bulk_ingest.py` (modified — per-event try/except, `event_failures`)
+
+**Commit:** `<pending>` — `fix(bulk): don't abort the year on one event's failure`
+
 ### 2026-06-04 22:02 UTC — P2.T13 — Date→patch lookup + backfill
 
 **Done:** Added `ingestion/patches.py` — scrapes Riot's patch-notes index once (parses `__NEXT_DATA__`), writes committed `data/patches.json` (142 patches, 0.47→12.10), populates the `patches` table, and backfills `matches.patch_id` to the latest patch released on/before each match date. CLI `python -m ingestion.patches --db data/prx.db [--refresh]`. Added `tests/test_patches.py` (3 tests). Rahat-approved external source (DEVIATIONS 2026-06-04).

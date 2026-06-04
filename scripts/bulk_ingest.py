@@ -63,7 +63,7 @@ def _match_ids_for_event(db_path: str, event_id: int) -> list[int]:
 
 async def run(year: int, db_path: str, *, only_event=None, skip_events=False, skip_matches=False) -> dict:
     totals = {"events": 0, "matches": 0, "maps": 0, "rounds": 0, "player_stats": 0,
-              "economy": 0, "detail_failures": 0}
+              "economy": 0, "detail_failures": 0, "event_failures": 0}
     async with VlrClient() as client:
         if not skip_events:
             logger.info("events_ingest_start")
@@ -75,7 +75,12 @@ async def run(year: int, db_path: str, *, only_event=None, skip_events=False, sk
 
         for event_id, name in [] if skip_matches else events:
             logger.info("event_start", event_id=event_id, name=name)
-            n_matches = await ingest_event_matches(event_id, db_path, client=client)
+            try:
+                n_matches = await ingest_event_matches(event_id, db_path, client=client)
+            except Exception as e:  # noqa: BLE001 - one event's failure must not abort the year
+                totals["event_failures"] += 1
+                logger.warning("event_failed", event_id=event_id, name=name, error=repr(e))
+                continue
             ev = {"maps": 0, "rounds": 0, "player_stats": 0, "economy": 0}
             for mid in _match_ids_for_event(db_path, event_id):
                 try:

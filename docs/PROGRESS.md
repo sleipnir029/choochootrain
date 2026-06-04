@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T7 — Player profile ingestion (resolve handles → player_id, backfill) (`ingestion/players.py`, `tests/test_players_ingestion.py`) — verified on 1 match's roster
-**Next task:** P2.T8 — Roster history ingestion (`ingestion/roster_history.py`, `tests/test_roster_history.py`) — uses `/v2/team?id=...&q=transactions`
+**Last completed task:** P2.T8 — Roster history ingestion (from player profiles) (`ingestion/roster_history.py`, `tests/test_roster_history.py`) — PRX 2025-06-22 roster verified
+**Next task:** P2.T9 — Bulk pull: 2024 (`scripts/bulk_ingest.py`, `logs/bulk_ingest_2024.log`) — run the full pipeline for all 2024 tier-1 events
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +87,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 16:08 UTC — P2.T8 — Roster history ingestion (from player profiles)
+
+**Done:** Added `ingestion/roster_history.py`. The `q=transactions` endpoint is broken (no dates/roles), so rosters are built from `/v2/player` profiles: `current_team` (active, left NULL) + `past_teams[].dates` → `roster_history` rows (team by substring match, month-granularity joined/left, role='player'). Idempotent per-player rebuild. Exposes `players_on_team_at(conn, team_id, date)`. CLI: `python -m ingestion.roster_history --db data/prx.db [--player-id N]`. Added `tests/test_roster_history.py` (5 tests). All per DEVIATIONS 2026-06-04, Rahat-approved.
+
+**Learned or surprised:** transactions `date`=real_name, `role`=tweet URL (unusable). Month regexes must anchor on real month names (not `[A-Za-z]+`) so glued 'Karmine CorpDecember 2023' splits; also hit a regex-precedence bug (alternation needs `(?:…)` wrapping). Profiles can list a team in both current + past → query uses `SELECT DISTINCT`.
+
+**Verification:** `pytest tests/test_roster_history.py` → 5 passed (month helpers incl. leap year + year-only fallback, current/past/glued tenure extraction, idempotent rebuild, the roster-on-date query). Full suite **36 passed**. Live (seeded the 5 PRX players via real resolution, ran T8 against real profiles): **PRX roster on 2025-06-22 = [f0rsakeN, Jinggg, d4v41, something, PatMen]** — exactly the done-when; FK clean.
+
+**Files touched:**
+- `ingestion/roster_history.py` (created)
+- `tests/test_roster_history.py` (created)
+- `docs/DEVIATIONS.md` (modified — transactions-broken rationale)
+
+**Commit:** `<pending>` — `phase-2.task-8: roster history from player profiles`
 
 ### 2026-06-04 15:52 UTC — P2.T7 — Player profile ingestion (resolve handles → player_id)
 

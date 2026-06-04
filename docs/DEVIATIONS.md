@@ -57,6 +57,31 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — roster_history built from player profiles (transactions endpoint broken)
+
+**Phase / Task:** P2.T8
+
+**Spec said:**
+TASKS.md P2.T8: "for each tier-1 team, fetches `/v2/team/transactions`, parses into `roster_history` rows. Handles open-ended (left_date=NULL)."
+
+**What was actually done (Rahat-approved):**
+`/v2/team?id=...&q=transactions` is **broken** in the pinned upstream — its `date` field contains the player's *real name* and `role` contains a *tweet URL*; there is no transaction date and no role (only `player{name,id,country}` + `action`). So `ingestion/roster_history.py` reconstructs rosters from **player profiles** instead: it iterates players in the DB, parses each `/v2/player` `current_team` (active, `left_date=NULL`) + `past_teams[].dates` into `roster_history` rows.
+
+**Decisions baked in:**
+- Dates are **month-granularity** → `joined_date` = first of month, `left_date` = last of month.
+- `role` defaults to **'player'** (profiles give no per-tenure role) → coaches/staff are not captured.
+- Team resolved by **substring match** against tracked teams (vlrggapi glues date ranges onto team names, e.g. 'Karmine CorpDecember 2023…'); month regexes are anchored on real month names so the glued boundary parses.
+- Only tenures on a **tracked (tier-1) team** are kept; undated tenures skipped (`joined_date` NOT NULL).
+- Idempotent via per-player delete+rebuild (`roster_history` has no natural unique key).
+- A player can yield duplicate overlapping PRX rows (profile lists a team in both current + past); `players_on_team_at()` uses `SELECT DISTINCT`.
+
+**Impact:**
+Done-when met: PRX roster on 2025-06-22 = f0rsakeN, Jinggg, d4v41, something, PatMen. Non-player staff rosters are out of scope until a dated source exists. Helper `players_on_team_at(conn, team_id, date)` is reusable by later phases (team_id_at_match sanity, features).
+
+**Rahat approval:** yes (build from player-profile tenures).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — Player handle→ID resolution heuristics (P2.T7)
 
 **Phase / Task:** P2.T7

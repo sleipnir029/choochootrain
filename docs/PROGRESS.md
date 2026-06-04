@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T4 — Events ingestion (curated tier-1 registry) (`ingestion/events.py`, `ingestion/tier1_events.py`, `tests/test_events_ingestion.py`)
-**Next task:** P2.T5 — Matches ingestion per event (`ingestion/matches.py`, `tests/test_matches_ingestion.py`)
+**Last completed task:** P2.T5 — Matches ingestion per event (`ingestion/matches.py`, `tests/test_matches_ingestion.py`) — module verified on 1 event; full bulk is T9–T11
+**Next task:** P2.T6 — Match details ingestion (maps, rounds, map_player_stats, map_team_economy) (`ingestion/match_details.py`, `tests/test_match_details.py`)
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +87,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 15:31 UTC — P2.T5 — Matches ingestion (per event)
+
+**Done:** Added `ingestion/matches.py`. Since `/v2/events/matches` lacks numeric team IDs and format, it enumerates a match list per event then fetches `/v2/match/details` per *completed* match for `teams[].id`, scores, winner; infers `format` from the winning score; auto-upserts the two referenced teams (preserving any existing country/region); parses `date_utc` to ISO date; leaves `patch_id` NULL (T13). CLI: `python -m ingestion.matches --db data/prx.db [--event-id N]`. Added `tests/test_matches_ingestion.py` (5 tests, no network).
+
+**Learned or surprised:** numeric team IDs live only in match/details; no endpoint gives Bo-format → inferred from score (DEVIATIONS 2026-06-04, Rahat-approved). match/details `data.segments` is a **list** (vs the event-detail dict). Match upsert had to preserve country/region or it would NULL out PRX's `sg`.
+
+**Verification:** `pytest tests/test_matches_ingestion.py` → 5 passed (format infer, date parse, row build, idempotency + completed-only skip, country preserved). Full suite 18 passed. Live on Masters Madrid (1921): **17 matches** upserted, teams auto-grew 2→10, formats Bo3×14/Bo5×2/Bo1×1, PRX `country` still `sg`, `PRAGMA foreign_key_check` clean, idempotent on rerun. **Full 800–1,500 population is deferred to the bulk runs (T9–T11).**
+
+**Files touched:**
+- `ingestion/matches.py` (created)
+- `tests/test_matches_ingestion.py` (created)
+- `docs/DEVIATIONS.md` (modified — match/details rationale)
+
+**Commit:** `<pending>` — `phase-2.task-5: matches ingestion (per event via match/details)`
 
 ### 2026-06-04 15:18 UTC — P2.T4 — Events ingestion (curated tier-1 registry)
 

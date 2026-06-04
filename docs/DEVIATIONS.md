@@ -57,6 +57,33 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — Matches require /v2/match/details (team IDs + format not in /v2/events/matches)
+
+**Phase / Task:** P2.T5
+
+**Spec said:**
+TASKS.md P2.T5: "for each event in events table, fetches `/v2/events/matches?event_id={id}`, upserts into matches table. Handles missing optional fields gracefully."
+
+**What was actually done:**
+`/v2/events/matches` only returns team **names** + scores + `is_winner` + `event_series` + url — **no numeric team IDs** and **no format**, but `matches` needs numeric `team1_id/team2_id` (FK) and `format` NOT NULL. So `ingestion/matches.py` uses `/v2/events/matches` to enumerate match_ids per event, then fetches `/v2/match/details` per *completed* match (its `teams[].id` are numeric), and:
+- infers `format` from the winning score (2→Bo3, 3→Bo5, 1→Bo1);
+- **auto-upserts the two teams** referenced by each match (id/name/tag/logo), with an upsert that **preserves** any existing `country`/`region` (so ingestion.teams' richer data isn't clobbered);
+- parses `date_utc` to an ISO **date** (time/timezone dropped);
+- leaves `patch_id` NULL (P2.T13 backfills from date);
+- ingests **completed matches only** (unplayed matches have no scores; `team*_score` is NOT NULL).
+
+**Why:**
+Confirmed by probing both endpoints: numeric team IDs exist only in `/v2/match/details`; no endpoint returns Bo-format directly. Rahat approved fetching match/details per match and re-fetching it again in P2.T6 (no shared cache for now).
+
+**Impact:**
+- T5 and T6 both call `/v2/match/details` (~2× detail requests across the bulk runs); acceptable for the one-time T9–T11 pulls.
+- The `teams` table is populated as a side effect of match ingestion (region/country stay NULL for teams only seen here).
+- **Full 800–1,500 row population happens in the bulk runs (T9–T11)**; T5 itself was verified on one event (Masters Madrid 2024 → 17 matches, teams 2→10, FK clean, idempotent).
+
+**Rahat approval:** yes (fetch match/details per match; re-fetch in T6).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — Events sourced from a curated ID registry, not by filtering /v2/events
 
 **Phase / Task:** P2.T4

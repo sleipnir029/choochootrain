@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — Ingestion validation anomalies (P2.T12): showmatch + unresolved handles
+
+**Phase / Task:** P2.T12
+
+**Spec said:**
+P2.T12: validation checks every match has >=1 map, every map has player_stats, rounds-completeness per year; note anomalies here.
+
+**What was actually done / found (2024 data):**
+`scripts/validate_ingestion.py` reports: 436 matches, 1,105 maps, 23,401 rounds, **100% rounds-complete maps**, 0 maps missing stats, 0 NULL winners, FK clean. Two benign anomalies:
+- **1 match with 0 maps — `match_id=321373`**, a "Showmatch: Showmatch" at Masters Madrid 2024 (ad-hoc all-star teams 15315/15316). Showmatches come through `/v2/events/matches` but have no competitive map data. Harmless for map-level modelling; flagged in case showmatches should be filtered from `matches` later.
+- **4 of 11,050 map_player_stats rows have NULL player_id** (handles `EQ118`, `dank1ng`, `spicyuuu`, `zhang yanqi` — no exact `/v2/search` match; likely CN subs/stand-ins). Left NULL by design (P2.T7 policy).
+
+`matches.patch_id` is NULL for all 436 (expected; populated by P2.T13).
+
+**Impact:** none requiring action now. Consider excluding `series_name LIKE 'Showmatch%'` from competitive aggregates in Phase 3.
+
+**Rahat approval:** N/A (informational data-quality findings).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — Universal on-disk response cache in VlrClient
 
 **Phase / Task:** P2.T9 (infrastructure; affects all ingestion)

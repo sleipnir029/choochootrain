@@ -89,6 +89,19 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 21:53 UTC — P2.T12 — Ingestion validation
+
+**Done:** Added `scripts/validate_ingestion.py` (read-only) — row counts, per-year matches/maps/rounds + rounds-completeness, and anomaly checks (matches w/o maps, maps w/o stats, incomplete maps, NULL player_id/winner/patch, FK check). Prints + saves to `logs/ingestion_validation.txt`. Gitignored generated logs/reports (`logs/*` except `.gitkeep`).
+
+**Verification (2024):** 436 matches / 1,105 maps / 23,401 rounds, **100% rounds-complete maps**, 0 maps missing stats, 0 NULL winners, FK clean. Anomalies (benign, in DEVIATIONS): 1 match with 0 maps = showmatch 321373; 4/11,050 stat rows NULL player_id. patch_id NULL for all (→ T13).
+
+**Files touched:**
+- `scripts/validate_ingestion.py` (created)
+- `.gitignore` (modified — ignore generated logs/reports)
+- `docs/DEVIATIONS.md` (modified — validation anomalies)
+
+**Commit:** `<pending>` — `phase-2.task-12: ingestion validation script`
+
 ### 2026-06-04 21:46 UTC — P2.T9 — Bulk pull 2024 (complete)
 
 **Done:** Completed the full 2024 bulk via `scripts/bulk_ingest.py` (run in two halves around a pause: match phases, then a cached `--skip-matches` resume for players+roster). All 15 2024 tier-1 events ingested end-to-end. Log saved to `logs/bulk_ingest_2024.log`.

@@ -231,3 +231,7 @@ data/*.db-shm
 
 # PRX Predictor — vlrggapi response cache (rebuildable; can be large)
 data/http_cache/
+
+# PRX Predictor — generated logs/reports (keep the dir, ignore contents)
+logs/*
+!logs/.gitkeep

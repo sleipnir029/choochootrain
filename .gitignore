@@ -222,3 +222,9 @@ __marimo__/
 # PRX Predictor — external datasets (licensed; e.g. IEEE DataPort Peng xlsx). Keep the dir, ignore data files.
 data/external/*
 !data/external/.gitkeep
+
+# PRX Predictor — generated SQLite warehouse (rebuilt by ingestion, not committed)
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm

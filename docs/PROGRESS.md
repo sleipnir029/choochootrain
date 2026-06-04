@@ -27,10 +27,11 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 ## Current state
 
-**Phase:** 1 COMPLETE (tag `v0.1.0-phase-1`). Phase 0 validation (T2–T6) still deferred.
-**Last completed task:** P1.T8 — Phase 1 summary + merge to main + tag
-**Next task:** await Rahat — either Phase 2 (schema + ingestion) or resume the deferred Phase 0 validation (loadout-only via the pipeline). Do not auto-start.
+**Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
+**Last completed task:** P2.T1 — Implement SQLite schema (`ingestion/schema.py`)
+**Next task:** P2.T2 — Base HTTP client for vlrggapi (`ingestion/vlr_client.py`)
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
+**Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
 ---
 
@@ -86,6 +87,20 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 14:44 UTC — P2.T1 — Implement SQLite schema
+
+**Done:** Added `ingestion/schema.py` — the full warehouse DDL from ARCHITECTURE.md §2 (16 tables + 11 indexes), with `init_db(path)` (idempotent via `IF NOT EXISTS`), `list_tables(path)`, and an `init <db_path>` CLI. Added a `.gitignore` rule so the generated `data/*.db` warehouse (+ journal/wal/shm) is never committed.
+
+**Learned or surprised:** `data/prx.db` was not previously gitignored — added a rule before creating it. Used `IF NOT EXISTS` so re-running init is a safe no-op (ARCHITECTURE's DDL has no such clause; this is an additive safety, not a schema change). Started directly on `main` per the new no-branches workflow.
+
+**Verification:** `python -m ingestion.schema init data/prx.db` → "Initialized … with 16 tables" (all expected: teams, players, roster_history, events, patches, matches, maps, rounds, map_player_stats, map_team_economy, elo_ratings, elo_map_offsets, player_skill, score_state_lookup, live_state, live_predictions). Re-run idempotent. `PRAGMA foreign_key_check` empty (OK); 11 `idx_*` indexes present. `git check-ignore data/prx.db` confirms the DB is ignored.
+
+**Files touched:**
+- `ingestion/schema.py` (created)
+- `.gitignore` (modified — ignore `data/*.db*`)
+
+**Commit:** `<pending>` — `phase-2.task-1: implement SQLite schema`
 
 ### 2026-06-04 13:05 UTC — P1.T8 — Phase 1 summary + merge to main + tag
 

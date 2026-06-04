@@ -91,12 +91,12 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Done:** Wrote the Phase 1 summary (see "Phase summaries" above), updated Current state. Merged `phase-1-vlrggapi-setup` → `main` and tagged `v0.1.0-phase-1`; pushed main + tag to origin. Phase 1 is complete; Phase 0 validation stays deferred.
 
-**Verification:** CI green through `372734b`. `git tag` shows `v0.1.0-phase-1`; `origin/main` advanced to the phase-1 tip. See commit refs below.
+**Verification:** CI green through `372734b`. Summary commit `6f1a0f9` on `phase-1-vlrggapi-setup`; merged to `main` via `4cc900a` (`--no-ff`); tagged `v0.1.0-phase-1` on main.
 
 **Files touched:**
 - `docs/PROGRESS.md` (summary + current state + this entry)
 
-**Commit:** `<pending>` — `phase-1.task-8: phase 1 summary + tag v0.1.0-phase-1`
+**Commit:** `6f1a0f9` — `phase-1.task-8: phase 1 summary + tag v0.1.0-phase-1` (merge `4cc900a`)
 
 ### 2026-06-04 12:55 UTC — P1.T7 — Combined docker-compose dry-run
 

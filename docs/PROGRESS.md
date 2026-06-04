@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P1.T3 — Smoke-test the endpoints we'll rely on
-**Next task:** P1.T4 — Initialize project repo skeleton
+**Last completed task:** P1.T4 — Initialize project repo skeleton
+**Next task:** P1.T5 — GitHub repo + initial push
 **Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
@@ -68,6 +68,20 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 12:12 UTC — P1.T4 — Initialize project repo skeleton
+
+**Done:** Created the folder structure from CLAUDE.md's repo layout. Python-package dirs (`ingestion/ models/ api/ scheduler/ llm/ tests/`) got empty `__init__.py`; non-Python dirs (`notebooks/ dashboard/ docker/ .github/workflows/`) got `.gitkeep`. `LICENSE` (MIT), `README.md`, `.gitignore`, `data/` already existed from earlier tasks — left as-is. No source files created (those belong to Phase 2+).
+
+**Learned or surprised:** Nothing notable. Kept placeholders truly empty to respect the "don't pre-create files for future phases" failure mode while still satisfying the skeleton task.
+
+**Verification:** All 10 target dirs present; `git status` clean except the 10 staged placeholders and the intentionally-untracked `Data.java` reference.
+
+**Files touched:**
+- `ingestion/__init__.py`, `models/__init__.py`, `api/__init__.py`, `scheduler/__init__.py`, `llm/__init__.py`, `tests/__init__.py` (created, empty)
+- `notebooks/.gitkeep`, `dashboard/.gitkeep`, `docker/.gitkeep`, `.github/workflows/.gitkeep` (created)
+
+**Commit:** `<pending>` — `phase-1.task-4: initialize project repo skeleton`
 
 ### 2026-06-04 12:05 UTC — P1.T3 — Smoke-test the endpoints we'll rely on
 

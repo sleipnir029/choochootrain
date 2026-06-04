@@ -101,7 +101,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `tests/test_teams_ingestion.py` (created)
 - `docs/DEVIATIONS.md` (modified — region-not-in-profile entry)
 
-**Commit:** `<pending>` — `phase-2.task-3: teams ingestion (idempotent upsert)`
+**Commit:** `9f8136f` — `phase-2.task-3: teams ingestion (idempotent upsert)`
 
 ### 2026-06-04 14:49 UTC — P2.T2 — Base HTTP client for vlrggapi
 

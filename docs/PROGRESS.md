@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T3 — Teams ingestion (idempotent upsert) (`ingestion/teams.py`, `tests/test_teams_ingestion.py`)
-**Next task:** P2.T4 — Events ingestion (tier-1 filter, upsert) (`ingestion/events.py`, `tests/test_events_ingestion.py`)
+**Last completed task:** P2.T4 — Events ingestion (curated tier-1 registry) (`ingestion/events.py`, `ingestion/tier1_events.py`, `tests/test_events_ingestion.py`)
+**Next task:** P2.T5 — Matches ingestion per event (`ingestion/matches.py`, `tests/test_matches_ingestion.py`)
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +87,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 15:18 UTC — P2.T4 — Events ingestion (curated tier-1 registry)
+
+**Done:** Added `ingestion/tier1_events.py` — a curated registry of 45 tier-1 vlr event IDs (all Masters/Champions + all four leagues' Kickoff/Stage 1/Stage 2, 2024–2026), each tagged with our tier/region classification (verified against SPEC §4). Added `ingestion/events.py` — fetches `/v2/event/{id}`, parses `dates`→(start,end ISO) and `prize`→int, combines with the registry, and upserts into `events` (idempotent). CLI `python -m ingestion.events --db data/prx.db`. Added `tests/test_events_ingestion.py` (10 tests, no network).
+
+**Learned or surprised:** `/v2/events` list can't classify tier-1 (paginated/recent-first, country-code region, year-less dates, no tier) and `/v2/search` is fuzzy → curated registry instead (DEVIATIONS 2026-06-04, Rahat-approved). `/v2/event/{id}`'s `data.segments` is a **dict** (not a list). `dates` has two formats — compact `"Mar 14 - 24, 2024"` and full `"Feb 16, 2024 - Apr 6, 2024"` (+ en-dash/cross-year variants); the parser handles both and cleanly skips unscheduled `"… – TBD"` events.
+
+**Verification:** `pytest tests/test_events_ingestion.py` → 10 passed (prize/date parsing incl. full/cross-year/TBD, classification, idempotency, skip). Full suite 13 passed. Live: `python -m ingestion.events` → **43/45 upserted** (2 skipped = 2026 Americas/China Stage 2, dates still TBD). All 9 Masters/Champions present with SPEC-correct dates (Madrid 2024 $500k → London 2026); Masters Toronto 2025 (2282) present. Distribution: Masters 6, Champions 3, Kickoff 12, RegionalLeague 22; regions global 9, na 8, emea 9, pac 9, cn 8.
+
+**Files touched:**
+- `ingestion/tier1_events.py` (created — the registry)
+- `ingestion/events.py` (created)
+- `tests/test_events_ingestion.py` (created)
+- `docs/DEVIATIONS.md` (modified — curated-registry rationale)
+
+**Commit:** `<pending>` — `phase-2.task-4: events ingestion (curated tier-1 registry)`
 
 ### 2026-06-04 14:59 UTC — CI fix — install runtime deps for ingestion tests
 

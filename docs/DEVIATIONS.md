@@ -57,6 +57,35 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — Events sourced from a curated ID registry, not by filtering /v2/events
+
+**Phase / Task:** P2.T4
+
+**Spec said:**
+TASKS.md P2.T4: "fetches `/v2/events` (both `q=upcoming` and `q=completed`), filters to tier-1 (Masters, Champions, Regional League Kickoff/Stage 1/Stage 2 from 2024–present), upserts." Implies the list endpoint is filterable by tier.
+
+**What was actually done:**
+Pinned a curated registry of the exact tier-1 vlr event IDs in `ingestion/tier1_events.py` (45 events, verified against SPEC §4 dates) and fetch each via `/v2/event/{id}`. `ingestion/events.py` combines the registry's tier/region with the API's name/dates/prize and upserts.
+
+**Why (what the API actually does):**
+- `/v2/events?q=completed` is **paginated, recent-first** (~51/page; VCT events are 30–50 pages back), its `region` is a *country* code (de/br/us), `dates` has **no year**, and there is **no tier field** — so the list can't classify the tier-1 set.
+- `/v2/search` is **fuzzy** (searching "Champions Seoul" returned a Game Changers event) and naming is **inconsistent across years** ("Champions Tour 2024: …" vs "VCT 2025: …" vs "Valorant Masters London 2026").
+- `/v2/event/{id}` is clean: `data.segments` is a **dict** (keys `event/prizes/teams/standings`); `event` has `name, series, dates ("Mar 14 - 24, 2024"), prize ("$500,000 USD"), location`.
+Rahat chose the curated-registry approach (over automated pagination or search) and "all tier-1 per SPEC §4" scope.
+
+**Decisions baked in:**
+- tier ∈ {Masters, Champions, Kickoff, RegionalLeague}; Stage 1/Stage 2 → RegionalLeague.
+- region: international → `global`; **Americas league → `na`** (per SPEC §4's NA/EMEA/PAC/CN wording), EMEA→`emea`, Pacific→`pac`, China→`cn`.
+- **Ascension** (promotion) events are excluded — not tier-1 per §4.
+- Two 2026 Stage-2 events (2977 Americas, 2978 China) are **unscheduled** (`dates = "Jun 30 – TBD"`) and skipped; they'll be picked up on a later re-ingest. Result: 43/45 ingested now.
+
+**Impact:**
+P2.T5 (matches) iterates the `events` table → only these tier-1 events' matches are pulled. Adding/refreshing events = edit the registry + re-run. No schema change.
+
+**Rahat approval:** yes (curated registry; all tier-1 per SPEC §4).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — /v2/team does not expose team region; `teams.region` left NULL
 
 **Phase / Task:** P2.T3

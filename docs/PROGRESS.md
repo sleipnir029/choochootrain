@@ -100,7 +100,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `ingestion/schema.py` (created)
 - `.gitignore` (modified — ignore `data/*.db*`)
 
-**Commit:** `<pending>` — `phase-2.task-1: implement SQLite schema`
+**Commit:** `a2ff555` — `phase-2.task-1: implement SQLite schema`
 
 ### 2026-06-04 13:05 UTC — P1.T8 — Phase 1 summary + merge to main + tag
 

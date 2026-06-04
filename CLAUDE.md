@@ -91,7 +91,9 @@ When something doesn't work, the first move is a print statement or log line. Do
 │   ├── ARCHITECTURE.md                ← DB schema, API contract, service wiring
 │   ├── SCHEDULER.md                   ← scheduled jobs configuration
 │   ├── PROGRESS.md                    ← running log; update after every task
-│   └── DEVIATIONS.md                  ← deviations from spec, with reasoning
+│   ├── DEVIATIONS.md                  ← deviations from spec, with reasoning
+│   └── MARIMO_CONVENTIONS.md          ← how to write marimo notebooks (read before touching any .py in notebooks/)
+├── notebooks/                         ← marimo notebooks (.py files; NOT .ipynb)
 ├── ingestion/                         ← vlrggapi → SQLite pipeline (Phase 2)
 ├── models/                            ← Elo, Bayesian regression, score-state (Phase 3-4)
 ├── api/                               ← FastAPI prediction service (Phase 6)
@@ -123,6 +125,7 @@ When something doesn't work, the first move is a print statement or log line. Do
 - **Docker + docker-compose**, image pushed to **GHCR** via GitHub Actions
 - **structlog** for logging
 - **pytest** for tests
+- **marimo** for all notebooks (NOT Jupyter; see `docs/MARIMO_CONVENTIONS.md`)
 
 ---
 

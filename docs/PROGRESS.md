@@ -107,7 +107,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `.gitignore` (modified — ignore `data/http_cache/`)
 - `docs/ARCHITECTURE.md` (modified — `VLR_CACHE_DIR` env), `docs/DEVIATIONS.md` (modified)
 
-**Commit:** `<pending>` — `feat(ingest): universal VlrClient response cache + bulk --skip-matches`
+**Commit:** `c7b6dcf` — `feat(ingest): universal VlrClient response cache + bulk --skip-matches`
 
 ### 2026-06-04 16:08 UTC — P2.T8 — Roster history ingestion (from player profiles)
 

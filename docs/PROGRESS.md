@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T2 — Base HTTP client for vlrggapi (`ingestion/vlr_client.py`)
-**Next task:** P2.T3 — Teams ingestion (idempotent upsert) (`ingestion/teams.py`, `tests/test_teams_ingestion.py`)
+**Last completed task:** P2.T3 — Teams ingestion (idempotent upsert) (`ingestion/teams.py`, `tests/test_teams_ingestion.py`)
+**Next task:** P2.T4 — Events ingestion (tier-1 filter, upsert) (`ingestion/events.py`, `tests/test_events_ingestion.py`)
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +87,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 14:55 UTC — P2.T3 — Teams ingestion (idempotent)
+
+**Done:** Added `ingestion/teams.py` — `parse_team(segment)` (maps a `/v2/team` profile to a `teams` row), `upsert_team(conn, row)` (SQLite `ON CONFLICT(team_id) DO UPDATE`), and `ingest_teams(team_ids, db_path, *, client=None)` (async; opens a `VlrClient` if none given). CLI: `python -m ingestion.teams 624 2 --db data/prx.db`. Added `tests/test_teams_ingestion.py` (3 tests, no network — a FakeClient feeds canned segments).
+
+**Learned or surprised:** `/v2/team` exposes no `region` → `teams.region` left NULL, backfill later (DEVIATIONS 2026-06-04). Tests use `asyncio.run` inside sync test fns, so no `pytest-asyncio` dependency needed.
+
+**Verification:** `pytest tests/test_teams_ingestion.py` → 3 passed (parse mapping; idempotency — ingest twice, count stays 2; missing team skipped). Live against a real container: `python -m ingestion.teams 624 2 --db data/prx.db` → PRX (624, Paper Rex, PRX, sg) and Sentinels (2) upserted; rerun keeps count at 2.
+
+**Files touched:**
+- `ingestion/teams.py` (created)
+- `tests/test_teams_ingestion.py` (created)
+- `docs/DEVIATIONS.md` (modified — region-not-in-profile entry)
+
+**Commit:** `<pending>` — `phase-2.task-3: teams ingestion (idempotent upsert)`
 
 ### 2026-06-04 14:49 UTC — P2.T2 — Base HTTP client for vlrggapi
 

@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — /v2/team does not expose team region; `teams.region` left NULL
+
+**Phase / Task:** P2.T3
+
+**Spec said:**
+ARCHITECTURE.md §2.1 `teams.region` ('na', 'emea', 'pac', 'cn'); P2.T3 fetches `/v2/team` and upserts team rows.
+
+**What was actually done:**
+The `/v2/team` profile segment (pinned upstream `a6075fe`) exposes `id, name, tag, logo, country, country_name, rating, roster, event_placements, total_winnings` — but **no region**. `ingestion/teams.py` maps the available fields and sets `region = NULL` (the column is nullable).
+
+**Why:**
+Region simply isn't in the team profile payload (confirmed by probing the live endpoint). Country (e.g. `sg`) is present but isn't the league region.
+
+**Impact:**
+`teams.region` is NULL after P2.T3. Backfill later from a region-scoped endpoint — `/v2/rankings?region=...` (P2 follow-up) or infer from each team's `events`. No schema change; downstream Elo/region logic must not assume region is populated yet.
+
+**Rahat approval:** N/A (minor; nullable column, no behaviour change).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — Resolution: repo stays PUBLIC; secrets via gitignored .env
 
 **Phase / Task:** P1.T5/T6 follow-up (resolves the "repo is PUBLIC" entry below)

@@ -103,7 +103,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `tests/test_match_details.py` (created)
 - `docs/DEVIATIONS.md` (modified — schema change + parsing decisions)
 
-**Commit:** `<pending>` — `phase-2.task-6: match details ingestion (maps/rounds/stats/economy)`
+**Commit:** `1a5fa01` — `phase-2.task-6: match details ingestion (maps/rounds/stats/economy)`
 
 ### 2026-06-04 15:31 UTC — P2.T5 — Matches ingestion (per event)
 

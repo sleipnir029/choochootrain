@@ -101,7 +101,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `tests/test_players_ingestion.py` (created)
 - `docs/DEVIATIONS.md` (modified — resolution heuristics)
 
-**Commit:** `<pending>` — `phase-2.task-7: player profile ingestion (resolve handles + backfill)`
+**Commit:** `fc6903c` — `phase-2.task-7: player profile ingestion (resolve handles + backfill)`
 
 ### 2026-06-04 15:43 UTC — P2.T6 — Match details ingestion (maps/rounds/stats/economy)
 

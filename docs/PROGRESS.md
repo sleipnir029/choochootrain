@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T5 — Matches ingestion per event (`ingestion/matches.py`, `tests/test_matches_ingestion.py`) — module verified on 1 event; full bulk is T9–T11
-**Next task:** P2.T6 — Match details ingestion (maps, rounds, map_player_stats, map_team_economy) (`ingestion/match_details.py`, `tests/test_match_details.py`)
+**Last completed task:** P2.T6 — Match details ingestion (maps/rounds/map_player_stats/map_team_economy) (`ingestion/match_details.py`, `tests/test_match_details.py`) — verified on 1 match; full bulk is T9–T11
+**Next task:** P2.T7 — Player profile ingestion — resolve distinct handles in `map_player_stats` → `player_id`, upsert `players`, backfill (`ingestion/players.py`, `tests/test_players_ingestion.py`)
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +87,23 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 15:43 UTC — P2.T6 — Match details ingestion (maps/rounds/stats/economy)
+
+**Done:** Added `ingestion/match_details.py` — parses `/v2/match/details` into `maps`, `rounds`, `map_player_stats`, `map_team_economy` (all idempotent upserts). Player stats are keyed by **handle** (`player_id` NULL until T7) — required a schema change to `map_player_stats` (PK `(map_id, player_handle)`, add `player_handle`, `player_id` nullable, `idx_mps_handle`), applied to both `docs/ARCHITECTURE.md` §2.3 and `ingestion/schema.py`. `is_rounds_complete=1` iff valid-round count == map score. CLI: `python -m ingestion.match_details --db data/prx.db --match-id N`. Added `tests/test_match_details.py` (9 tests).
+
+**Learned or surprised:** No player IDs anywhere in the detail → handle-keyed capture (DEVIATIONS 2026-06-04, Rahat-approved schema change). `picked_by` is the literal `"PICK"` → `picked_by_team_id` NULL. Economy is 5 buckets as `"total (won)"`; mapped to the 4 schema pct columns (the `$` semi-eco bucket dropped). OT per-side scores dropped (no schema column).
+
+**Verification:** `pytest tests/test_match_details.py` → 9 passed; full suite **27 passed**. Live end-to-end (re-inited DB → events → matches[1921] → details[312765]): match 312765 → 2 maps, 44 rounds, 20 player_stats, 4 economy, both maps complete; `foreign_key_check` clean; map Icebox 13-8 (ct 7/t 6, 3591s, winner 8877); stat N4RRATE/Gekko acs 281/kast 67/hs 32/rating 1.47 with `player_id` NULL; economy 50/33/40/77; idempotent on rerun.
+
+**Files touched:**
+- `ingestion/match_details.py` (created)
+- `ingestion/schema.py` (modified — map_player_stats re-keyed)
+- `docs/ARCHITECTURE.md` (modified — §2.3 schema change)
+- `tests/test_match_details.py` (created)
+- `docs/DEVIATIONS.md` (modified — schema change + parsing decisions)
+
+**Commit:** `<pending>` — `phase-2.task-6: match details ingestion (maps/rounds/stats/economy)`
 
 ### 2026-06-04 15:31 UTC — P2.T5 — Matches ingestion (per event)
 

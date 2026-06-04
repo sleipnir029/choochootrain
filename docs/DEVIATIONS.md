@@ -57,6 +57,35 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — map_player_stats keyed by handle; economy buckets mapped; schema change
+
+**Phase / Task:** P2.T6 (schema change — affects P2.T7, Phase 4)
+
+**Spec said:**
+ARCHITECTURE.md §2.3 `map_player_stats` PK `(map_id, player_id)`, `player_id` NOT NULL FK. P2.T6 populates maps/rounds/map_player_stats/map_team_economy from `/v2/match/details`.
+
+**What was actually done (Rahat-approved schema change):**
+`/v2/match/details` exposes player **handles**, not numeric IDs (no ID in `players`, `performance.kill_matrix`, or `advanced_stats`). So `map_player_stats` is re-keyed: **PK `(map_id, player_handle)`, new `player_handle` column, `player_id` now nullable** (backfilled in P2.T7 by resolving handles → vlr IDs). Updated both `docs/ARCHITECTURE.md` §2.3 and `ingestion/schema.py`; added `idx_mps_handle`.
+
+Other P2.T6 parsing decisions (informational):
+- `maps.picked_by_team_id` left **NULL** — the detail's `picked_by` is the literal string `"PICK"`, not a team.
+- `is_rounds_complete = 1` iff count of valid rounds (winner∈team1/team2, side∈ct/t) equals `team1_score+team2_score`; the rounds array contains empty placeholders that are filtered.
+- `rounds.half` derived from round number (1–12 first, 13–24 second, 25+ ot); `team1_side` = detail's per-round `side`, `team2_side` = its opposite.
+- **OT** per-side scores are dropped (schema has only ct/t columns; `score_ot` ignored).
+- **Economy**: vlr exposes 5 buckets (pistol, eco, $, $$, $$$) as `"total (won)"`; the schema has 4 pct columns, so `pistol_win_pct`=won/2, `eco_win_pct`←eco, `semi_buy_win_pct`←`$$`, `full_buy_win_pct`←`$$$`; the `$` (semi-eco) bucket is **dropped**.
+
+**Why:**
+Player numeric IDs are simply absent from the match detail; resolving every stat row via fuzzy `/v2/search` during the bulk would be slow and error-prone. Capturing by handle now and resolving unique handles once in T7 is more robust.
+
+**Impact:**
+- P2.T7 changes from "extract player_ids from map_player_stats" to "resolve distinct handles → player_id, upsert players, backfill `map_player_stats.player_id`".
+- Phase 4 (player skill) should join on `player_id` once backfilled (or handle pre-backfill).
+- `init_db` on an existing pre-change DB won't migrate (IF NOT EXISTS) — drop/recreate `data/prx.db` (done; it's a rebuildable artifact).
+
+**Rahat approval:** yes (capture by handle, resolve IDs in T7).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — Matches require /v2/match/details (team IDs + format not in /v2/events/matches)
 
 **Phase / Task:** P2.T5

@@ -175,9 +175,14 @@ CREATE INDEX idx_rounds_map ON rounds(map_id);
 ### 2.3 Per-map per-player stats
 
 ```sql
+-- NOTE: keyed on (map_id, player_handle) because /v2/match/details exposes
+-- player handles, not numeric IDs. player_id is nullable and backfilled in
+-- P2.T7 by resolving handles -> vlr.gg player IDs. See docs/DEVIATIONS.md
+-- (2026-06-04, P2.T6).
 CREATE TABLE map_player_stats (
     map_id INTEGER NOT NULL,
-    player_id INTEGER NOT NULL,
+    player_handle TEXT NOT NULL,                  -- handle as it appears in the match
+    player_id INTEGER,                            -- resolved from handle in P2.T7 (NULL until then)
     team_id_at_match INTEGER NOT NULL,            -- CRITICAL: team at the time, not current
     agent TEXT NOT NULL,
     rating REAL,
@@ -190,12 +195,13 @@ CREATE TABLE map_player_stats (
     hs_pct INTEGER,
     fk INTEGER,                                   -- first kills
     fd INTEGER,                                   -- first deaths
-    PRIMARY KEY (map_id, player_id),
+    PRIMARY KEY (map_id, player_handle),
     FOREIGN KEY (map_id) REFERENCES maps(map_id),
     FOREIGN KEY (player_id) REFERENCES players(player_id),
     FOREIGN KEY (team_id_at_match) REFERENCES teams(team_id)
 );
 CREATE INDEX idx_mps_player ON map_player_stats(player_id);
+CREATE INDEX idx_mps_handle ON map_player_stats(player_handle);
 CREATE INDEX idx_mps_team ON map_player_stats(team_id_at_match);
 
 CREATE TABLE map_team_economy (

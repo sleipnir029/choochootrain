@@ -102,7 +102,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `tests/test_events_ingestion.py` (created)
 - `docs/DEVIATIONS.md` (modified — curated-registry rationale)
 
-**Commit:** `<pending>` — `phase-2.task-4: events ingestion (curated tier-1 registry)`
+**Commit:** `6450143` — `phase-2.task-4: events ingestion (curated tier-1 registry)`
 
 ### 2026-06-04 14:59 UTC — CI fix — install runtime deps for ingestion tests
 

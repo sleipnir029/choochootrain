@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — Universal on-disk response cache in VlrClient
+
+**Phase / Task:** P2.T9 (infrastructure; affects all ingestion)
+
+**Spec said:**
+ARCHITECTURE.md §4.2 lists env config but specifies no HTTP caching layer.
+
+**What was actually done (Rahat-requested):**
+Added a disk cache to `VlrClient.get_json` — the single chokepoint every download goes through. Each **successful** GET is written to `VLR_CACHE_DIR` (default `data/http_cache`, gitignored) keyed by `sha256(path?sorted(params))`; subsequent identical requests are served from disk with no network call. Enabled by default; `VlrClient(cache=False)` bypasses it (for volatile endpoints like the Phase-5 live poller). Cache writes are atomic (temp + rename), best-effort (never fatal), and only success envelopes are cached (errors/empties are not). Added `VLR_CACHE_DIR` to ARCHITECTURE §4.2. Also added `bulk_ingest --skip-matches` so a resumed run skips the already-ingested match phases and runs only players + roster.
+
+**Why:**
+The bulk pulls make thousands of heavily rate-limited (`429`) calls; without caching, every pause/resume or re-run re-fetches the same static historical data, wasting hours and keeping the container resident. Caching makes the downloading system fetch any endpoint at most once.
+
+**Impact:**
+Pause/resume is now cheap and safe; re-runs are near-instant for already-fetched endpoints. Cache is a rebuildable artifact (delete `data/http_cache/` to force refresh). Volatile/live endpoints must opt out with `cache=False` when those features are built.
+
+**Rahat approval:** yes (requested: "introduce caching … universal rule for all of the downloading system").
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — roster_history built from player profiles (transactions endpoint broken)
 
 **Phase / Task:** P2.T8

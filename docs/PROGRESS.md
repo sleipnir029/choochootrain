@@ -28,8 +28,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T8 — Roster history ingestion (from player profiles) (`ingestion/roster_history.py`, `tests/test_roster_history.py`) — PRX 2025-06-22 roster verified
-**Next task:** P2.T9 — Bulk pull: 2024 (`scripts/bulk_ingest.py`, `logs/bulk_ingest_2024.log`) — run the full pipeline for all 2024 tier-1 events
+**Last completed task:** P2.T8 — Roster history ingestion (from player profiles). Plus: universal VlrClient response cache + `bulk_ingest --skip-matches` (Rahat-requested).
+**Next task:** P2.T9 — finish the 2024 bulk (PAUSED): match data done; resume players+roster with `--skip-events --skip-matches`. Then T10 (2025), T11 (2026).
+**Open blockers:** none. The 2024 bulk is paused mid-run (resumable); rate-limiting (429) makes the player/roster stages slow.
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +88,26 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 17:20 UTC — Caching + resume; 2024 bulk paused mid-run
+
+**Done:** Added a universal on-disk response cache to `VlrClient` (caches every successful GET under `VLR_CACHE_DIR`=`data/http_cache`, keyed by path+params; `cache=False` to bypass; atomic best-effort writes) so the downloading system fetches each endpoint at most once across stages/runs. Added `bulk_ingest --skip-matches` to resume straight into players+roster. `tests/test_vlr_client.py` (4 tests) covers hit/miss/disabled/non-success. Rahat-requested (DEVIATIONS 2026-06-04).
+
+**2024 bulk status (PAUSED, resumable):** ran all **15/15 2024 events** through matches+details, then was paused early in player resolution. Persisted in `data/prx.db`: 436 matches, 1,105 maps, 23,401 rounds, 11,050 map_player_stats, 1,630 map_team_economy, 47 teams, 43 events. **Pending:** ~255 distinct handles still to resolve (10,230 stat rows `player_id` NULL) + roster_history. NOTE: this match data was ingested *before* the cache existed, so it's not in the cache — a resumed `--skip-matches` run will fetch the player/roster profiles fresh (and cache them).
+
+**Resume command:** start the vlrggapi container, then
+`python -m scripts.bulk_ingest --year 2024 --db data/prx.db --skip-events --skip-matches > logs/bulk_ingest_2024.log 2>&1`
+
+**Verification:** `pytest` → **40 passed** (incl. 4 new cache tests); `compileall` clean. Cache logic proven via httpx.MockTransport (2nd identical request served from disk, no network).
+
+**Files touched:**
+- `ingestion/vlr_client.py` (modified — disk cache)
+- `scripts/bulk_ingest.py` (modified — `--skip-matches`)
+- `tests/test_vlr_client.py` (created)
+- `.gitignore` (modified — ignore `data/http_cache/`)
+- `docs/ARCHITECTURE.md` (modified — `VLR_CACHE_DIR` env), `docs/DEVIATIONS.md` (modified)
+
+**Commit:** `<pending>` — `feat(ingest): universal VlrClient response cache + bulk --skip-matches`
 
 ### 2026-06-04 16:08 UTC — P2.T8 — Roster history ingestion (from player profiles)
 

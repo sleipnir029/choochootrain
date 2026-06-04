@@ -10,7 +10,10 @@ Run with stdout/stderr redirected to capture the log, e.g.:
     python -m scripts.bulk_ingest --year 2024 --db data/prx.db > logs/bulk_ingest_2024.log 2>&1
 
 Flags: --only-event <id> (one event), --skip-events (don't re-ingest the
-event registry first).
+event registry first), --skip-matches (resume: skip events/matches/details and
+run only the players + roster stages — the match data is already in the DB).
+All fetches are cached on disk (see ingestion.vlr_client), so a resumed run
+re-uses anything already downloaded instead of re-fetching it.
 """
 
 import argparse
@@ -58,7 +61,7 @@ def _match_ids_for_event(db_path: str, event_id: int) -> list[int]:
         conn.close()
 
 
-async def run(year: int, db_path: str, *, only_event=None, skip_events=False) -> dict:
+async def run(year: int, db_path: str, *, only_event=None, skip_events=False, skip_matches=False) -> dict:
     totals = {"events": 0, "matches": 0, "maps": 0, "rounds": 0, "player_stats": 0,
               "economy": 0, "detail_failures": 0}
     async with VlrClient() as client:
@@ -68,9 +71,9 @@ async def run(year: int, db_path: str, *, only_event=None, skip_events=False) ->
             logger.info("events_ingest_done", upserted=n)
 
         events = _events_for_year(db_path, year, only_event)
-        logger.info("bulk_start", year=year, events=len(events))
+        logger.info("bulk_start", year=year, events=len(events), skip_matches=skip_matches)
 
-        for event_id, name in events:
+        for event_id, name in [] if skip_matches else events:
             logger.info("event_start", event_id=event_id, name=name)
             n_matches = await ingest_event_matches(event_id, db_path, client=client)
             ev = {"maps": 0, "rounds": 0, "player_stats": 0, "economy": 0}
@@ -108,12 +111,15 @@ def main(argv=None) -> int:
     parser.add_argument("--db", default="data/prx.db")
     parser.add_argument("--only-event", type=int, default=None)
     parser.add_argument("--skip-events", action="store_true")
+    parser.add_argument("--skip-matches", action="store_true",
+                        help="Resume: skip the events/matches/details phases, run only players + roster.")
     args = parser.parse_args(argv)
 
     # INFO-level structlog (suppresses per-request DEBUG noise from vlr_client).
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
 
-    summary = asyncio.run(run(args.year, args.db, only_event=args.only_event, skip_events=args.skip_events))
+    summary = asyncio.run(run(args.year, args.db, only_event=args.only_event,
+                              skip_events=args.skip_events, skip_matches=args.skip_matches))
     print(f"bulk_ingest {args.year}: {summary}")
     return 0
 

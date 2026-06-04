@@ -405,7 +405,7 @@ Next scheduled match(es) for a team.
 
 ### 4.2 Internal communication
 - `prx-app` → `vlrggapi`: `http://vlrggapi:3001/v2/...` (via docker-compose default network)
-- All env config in `.env`: `VLRGGAPI_URL`, `DEEPSEEK_API_KEY`, `DATA_DIR`, `LOG_LEVEL`
+- All env config in `.env`: `VLRGGAPI_URL`, `DEEPSEEK_API_KEY`, `DATA_DIR`, `LOG_LEVEL`, `VLR_CACHE_DIR` (vlrggapi response cache dir; default `data/http_cache`)
 
 ### 4.3 Module boundaries (importable, no circular deps)
 - `ingestion/` imports from `models/.schema` only

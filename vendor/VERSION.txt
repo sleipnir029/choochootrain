@@ -1,0 +1,16 @@
+vlrggapi — vendored as a git submodule (see ../.gitmodules and the gitlink at vendor/vlrggapi)
+
+Upstream:       https://github.com/axsddlr/vlrggapi
+Branch tracked: master
+Pinned commit:  a6075fec9757ae5394c9a50002ba40270f4a5d00
+Pinned on:      2026-06-04
+Pinned by:      P1.T1 (phase-1-vlrggapi-setup)
+
+Why pinned: vlr.gg HTML can change and break the scraper; we control upgrades by
+bumping this submodule to a reviewed commit rather than tracking master live.
+
+To update to a newer upstream commit:
+  git -C vendor/vlrggapi fetch origin
+  git -C vendor/vlrggapi checkout <new-sha>
+  git add vendor/vlrggapi
+  # then update the "Pinned commit"/"Pinned on" lines above and commit

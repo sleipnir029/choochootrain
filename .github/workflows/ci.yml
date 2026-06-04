@@ -1,0 +1,35 @@
+name: CI
+
+# Phase 1 CI stub (P1.T6): syntax check + pytest placeholder + build the prx-app
+# image (no push — GHCR publishing is Phase 8). Runs on main and phase-* branches.
+on:
+  push:
+    branches: [main, "phase-*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # No submodules: the vlrggapi submodule isn't needed to lint/build prx-app.
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python syntax check
+        run: python -m compileall -q . -x 'vendor/.*'
+
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Run tests (placeholder — exit 5 = no tests yet, treated as pass)
+        run: python -m pytest -q || [ $? -eq 5 ]
+
+      - name: Build prx-app image (no push)
+        run: docker build -f docker/Dockerfile -t prx-app:ci .

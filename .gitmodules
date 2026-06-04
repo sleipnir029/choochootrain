@@ -1,0 +1,3 @@
+[submodule "vendor/vlrggapi"]
+	path = vendor/vlrggapi
+	url = https://github.com/axsddlr/vlrggapi.git

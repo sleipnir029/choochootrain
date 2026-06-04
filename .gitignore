@@ -149,6 +149,8 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
 .envrc
 .venv
 env/
@@ -216,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# PRX Predictor — external datasets (licensed; e.g. IEEE DataPort Peng xlsx). Keep the dir, ignore data files.
+data/external/*
+!data/external/.gitkeep

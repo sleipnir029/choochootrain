@@ -1,0 +1,13 @@
+# Keep the build context lean (the prx-app build context is the repo root).
+.git
+vendor
+data
+docs
+notebooks
+dashboard/node_modules
+**/__pycache__
+*.pyc
+.venv
+.pytest_cache
+.ruff_cache
+*.log

@@ -97,7 +97,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Files touched:**
 - `.github/workflows/ci.yml` (modified — install test deps)
 
-**Commit:** `<pending>` — `ci: install httpx+structlog so ingestion tests import`
+**Commit:** `e5cd953` — `ci: install httpx+structlog so ingestion tests import`
 
 ### 2026-06-04 14:55 UTC — P2.T3 — Teams ingestion (idempotent)
 

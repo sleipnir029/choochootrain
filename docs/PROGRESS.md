@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T1 — Implement SQLite schema (`ingestion/schema.py`)
-**Next task:** P2.T2 — Base HTTP client for vlrggapi (`ingestion/vlr_client.py`)
+**Last completed task:** P2.T2 — Base HTTP client for vlrggapi (`ingestion/vlr_client.py`)
+**Next task:** P2.T3 — Teams ingestion (idempotent upsert) (`ingestion/teams.py`, `tests/test_teams_ingestion.py`)
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -87,6 +87,19 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 14:49 UTC — P2.T2 — Base HTTP client for vlrggapi
+
+**Done:** Added `ingestion/vlr_client.py` — an async `VlrClient` (async context manager over `httpx.AsyncClient`). Reads base URL from `VLRGGAPI_URL` (default `http://localhost:3001`); `get_json(path, **params)` returns the full v2 envelope, `get_segments(...)` unwraps `data.segments` after asserting `status == "success"`. Retries transport errors and HTTP 5xx with exponential backoff (0.5s×2ⁿ, 3 attempts), sleeps on 429 honouring `Retry-After`, raises `VlrApiError` on non-retryable 4xx or exhaustion. structlog logging throughout.
+
+**Learned or surprised:** FastAPI returns a real 404 for unknown routes (not a success envelope), so 4xx correctly raises immediately. httpx `RequestError` is the right catch-all for transport+timeout retries.
+
+**Verification:** Re-expressed the P1.T3 smoke checks through the client against a live `vlrggapi:vendored` container → **5/5 pass** (health, PRX profile, `q=matches`, results→match/details with maps, live_score). Error paths confirmed: 404 → immediate `VlrApiError`; unreachable host → 2 retries (backoff 0.5s, 1.0s) then `VlrApiError`. `compileall ingestion` clean.
+
+**Files touched:**
+- `ingestion/vlr_client.py` (created)
+
+**Commit:** `<pending>` — `phase-2.task-2: base async HTTP client for vlrggapi`
 
 ### 2026-06-04 14:44 UTC — P2.T1 — Implement SQLite schema
 

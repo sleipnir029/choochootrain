@@ -1,0 +1,26 @@
+# Phase 1 dry-run (P1.T7): vlrggapi + prx-app hello-world stub on one network.
+# Phase 8 hardens this (health checks, volumes, restart policies, GHCR images).
+#
+# Run from the repo root:
+#   docker compose -f docker/docker-compose.yml up -d --build
+services:
+  vlrggapi:
+    build: ../vendor/vlrggapi
+    image: vlrggapi:a6075fe
+    # Internal-only per ARCHITECTURE.md (no host port); prx-app reaches it as vlrggapi:3001.
+    expose:
+      - "3001"
+    restart: unless-stopped
+
+  prx-app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: prx-app:stub
+    environment:
+      - VLRGGAPI_URL=http://vlrggapi:3001
+    ports:
+      - "8000:8000"
+    depends_on:
+      - vlrggapi
+    restart: unless-stopped

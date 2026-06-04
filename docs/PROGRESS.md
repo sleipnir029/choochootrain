@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P1.T6 — CI workflow stub
-**Next task:** P1.T7 — Combined docker-compose dry-run
+**Last completed task:** P1.T7 — Combined docker-compose dry-run
+**Next task:** P1.T8 — Phase summary (end of Phase 1)
 **Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
@@ -68,6 +68,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 12:55 UTC — P1.T7 — Combined docker-compose dry-run
+
+**Done:** Wrote `docker/docker-compose.yml` with two services — `vlrggapi` (built from the vendored submodule, internal-only `expose: 3001`) and `prx-app` (FastAPI hello-world stub, host `:8000`) — networked via compose's default network with `VLRGGAPI_URL=http://vlrggapi:3001`. Turned the `docker/Dockerfile` into the hello-world (installs fastapi+uvicorn, runs `app_stub:app`); the stub app lives in `docker/app_stub.py` (kept out of `api/` so Phase 6 stays clean). Added a repo-root `.dockerignore` so the prx-app build context (= repo root) excludes `.git`, `vendor`, `data`, etc.
+
+**Learned or surprised:** `python:3.11-slim` has no `curl`, so the inter-container check uses `python -c urllib` instead. Compose auto-names containers (`docker-vlrggapi-1`/`docker-prx-app-1`) — fine since the service name `vlrggapi` is what DNS resolves for `http://vlrggapi:3001`. Stopped the standalone P1.T2 `vlrggapi` container first to avoid confusion.
+
+**Verification:** `docker compose -f docker/docker-compose.yml up -d --build` → both Up (vlrggapi healthy). **From inside prx-app: `http://vlrggapi:3001/v2/health` → `status=success`** (done-when met). Host `:8000/` → hello; `:8000/vlrggapi-health` → `reached:true`, upstream Healthy. Stack torn down (`compose down`) to leave a clean state.
+
+**Files touched:**
+- `docker/docker-compose.yml` (created)
+- `docker/Dockerfile` (modified — minimal stub → FastAPI hello-world)
+- `docker/app_stub.py` (created)
+- `.dockerignore` (created)
+
+**Commit:** `<pending>` — `phase-1.task-7: docker-compose dry-run (prx-app <-> vlrggapi)`
 
 ### 2026-06-04 12:40 UTC — Secret hygiene (Rahat request; repo stays public)
 

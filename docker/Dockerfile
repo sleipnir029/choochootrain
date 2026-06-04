@@ -1,9 +1,13 @@
-# prx-app image — minimal Phase 1 stub (P1.T6).
-# Fleshed out to a FastAPI hello-world in P1.T7, and to the real app in Phase 6.
+# prx-app image — Phase 1 FastAPI hello-world stub (P1.T7).
+# The real app + full requirements arrive in Phase 6; kept minimal on purpose.
 FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Stub deps only (fastapi + uvicorn). Phase 6 replaces this with the pinned app stack.
+RUN pip install --no-cache-dir fastapi uvicorn
 
-# Phase 1 stub: no dependency install or runtime entrypoint yet — P1.T7 adds those.
+COPY docker/app_stub.py ./app_stub.py
+
+EXPOSE 8000
+CMD ["uvicorn", "app_stub:app", "--host", "0.0.0.0", "--port", "8000"]

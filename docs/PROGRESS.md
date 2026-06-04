@@ -102,7 +102,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Files touched:**
 - `scripts/bulk_ingest.py` (modified — per-event try/except, `event_failures`)
 
-**Commit:** `<pending>` — `fix(bulk): don't abort the year on one event's failure`
+**Commit:** `3dd8e0a` — `fix(bulk): don't abort the year on one event's failure`
 
 ### 2026-06-04 22:02 UTC — P2.T13 — Date→patch lookup + backfill
 

@@ -1,0 +1,712 @@
+[
+  {
+    "patch_id": "0.47",
+    "release_date": "2020-04-21",
+    "notes_url": null
+  },
+  {
+    "patch_id": "0.49",
+    "release_date": "2020-04-28",
+    "notes_url": null
+  },
+  {
+    "patch_id": "0.50",
+    "release_date": "2020-05-12",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.0",
+    "release_date": "2020-06-01",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.01",
+    "release_date": "2020-06-09",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.02",
+    "release_date": "2020-06-23",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.03",
+    "release_date": "2020-07-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.04",
+    "release_date": "2020-07-21",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.05",
+    "release_date": "2020-08-04",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.06",
+    "release_date": "2020-08-20",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.07",
+    "release_date": "2020-09-01",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.08",
+    "release_date": "2020-09-15",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.09",
+    "release_date": "2020-09-29",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.10",
+    "release_date": "2020-10-13",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.11",
+    "release_date": "2020-10-27",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.12",
+    "release_date": "2020-11-10",
+    "notes_url": null
+  },
+  {
+    "patch_id": "1.14",
+    "release_date": "2020-12-08",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.0",
+    "release_date": "2021-01-12",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.01",
+    "release_date": "2021-01-20",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.02",
+    "release_date": "2021-02-02",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.03",
+    "release_date": "2021-02-17",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.04",
+    "release_date": "2021-03-02",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.05",
+    "release_date": "2021-03-16",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.06",
+    "release_date": "2021-03-30",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.07",
+    "release_date": "2021-04-13",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.08",
+    "release_date": "2021-04-27",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.09",
+    "release_date": "2021-05-11",
+    "notes_url": null
+  },
+  {
+    "patch_id": "2.11",
+    "release_date": "2021-06-08",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.0",
+    "release_date": "2021-06-22",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.01",
+    "release_date": "2021-07-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.02",
+    "release_date": "2021-07-20",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.03",
+    "release_date": "2021-08-10",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.04",
+    "release_date": "2021-08-24",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.05",
+    "release_date": "2021-09-08",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.06",
+    "release_date": "2021-09-21",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.07",
+    "release_date": "2021-10-05",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.08",
+    "release_date": "2021-10-19",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.09",
+    "release_date": "2021-11-02",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.10",
+    "release_date": "2021-11-16",
+    "notes_url": null
+  },
+  {
+    "patch_id": "3.12",
+    "release_date": "2021-12-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.0",
+    "release_date": "2022-01-11",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.01",
+    "release_date": "2022-01-19",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.02",
+    "release_date": "2022-02-01",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.03",
+    "release_date": "2022-02-15",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.04",
+    "release_date": "2022-03-01",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.05",
+    "release_date": "2022-03-22",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.07",
+    "release_date": "2022-04-12",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.08",
+    "release_date": "2022-04-27",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.09",
+    "release_date": "2022-05-10",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.10",
+    "release_date": "2022-05-24",
+    "notes_url": null
+  },
+  {
+    "patch_id": "4.11",
+    "release_date": "2022-06-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.0",
+    "release_date": "2022-06-16",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.01",
+    "release_date": "2022-07-12",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.03",
+    "release_date": "2022-08-09",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.04",
+    "release_date": "2022-08-23",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.05",
+    "release_date": "2022-09-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.06",
+    "release_date": "2022-09-20",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.07",
+    "release_date": "2022-10-04",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.08",
+    "release_date": "2022-10-18",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.09",
+    "release_date": "2022-11-01",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.10",
+    "release_date": "2022-11-15",
+    "notes_url": null
+  },
+  {
+    "patch_id": "5.12",
+    "release_date": "2022-12-06",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.0",
+    "release_date": "2023-01-10",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.01",
+    "release_date": "2023-01-18",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.02",
+    "release_date": "2023-02-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.03",
+    "release_date": "2023-02-14",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.04",
+    "release_date": "2023-03-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.05",
+    "release_date": "2023-03-14",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.06",
+    "release_date": "2023-03-28",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.07",
+    "release_date": "2023-04-11",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.08",
+    "release_date": "2023-04-25",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.10",
+    "release_date": "2023-05-23",
+    "notes_url": null
+  },
+  {
+    "patch_id": "6.11",
+    "release_date": "2023-06-06",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.0",
+    "release_date": "2023-06-27",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.01",
+    "release_date": "2023-07-11",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.02",
+    "release_date": "2023-08-01",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.03",
+    "release_date": "2023-08-08",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.04",
+    "release_date": "2023-08-29",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.05",
+    "release_date": "2023-09-06",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.06",
+    "release_date": "2023-09-19",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.07",
+    "release_date": "2023-10-03",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.08",
+    "release_date": "2023-10-17",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.09",
+    "release_date": "2023-10-31",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.10",
+    "release_date": "2023-11-14",
+    "notes_url": null
+  },
+  {
+    "patch_id": "7.12",
+    "release_date": "2023-12-05",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.0",
+    "release_date": "2024-01-09",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.01",
+    "release_date": "2024-01-23",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.02",
+    "release_date": "2024-02-06",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.03",
+    "release_date": "2024-02-21",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.04",
+    "release_date": "2024-03-05",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.05",
+    "release_date": "2024-03-26",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.07",
+    "release_date": "2024-04-16",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.08",
+    "release_date": "2024-04-30",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.09",
+    "release_date": "2024-05-14",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.10",
+    "release_date": "2024-05-29",
+    "notes_url": null
+  },
+  {
+    "patch_id": "8.11",
+    "release_date": "2024-06-11",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.0",
+    "release_date": "2024-06-25",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.01",
+    "release_date": "2024-07-16",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.02",
+    "release_date": "2024-07-30",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.03",
+    "release_date": "2024-08-13",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.04",
+    "release_date": "2024-08-27",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.05",
+    "release_date": "2024-09-10",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.06",
+    "release_date": "2024-09-24",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.07",
+    "release_date": "2024-10-08",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.08",
+    "release_date": "2024-10-22",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.09",
+    "release_date": "2024-11-05",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.10",
+    "release_date": "2024-11-19",
+    "notes_url": null
+  },
+  {
+    "patch_id": "9.11",
+    "release_date": "2024-12-10",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.00",
+    "release_date": "2025-01-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.01",
+    "release_date": "2025-01-21",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.02",
+    "release_date": "2025-02-04",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.03",
+    "release_date": "2025-02-18",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.04",
+    "release_date": "2025-03-04",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.05",
+    "release_date": "2025-03-18",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.06",
+    "release_date": "2025-04-01",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.07",
+    "release_date": "2025-04-15",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.08",
+    "release_date": "2025-04-29",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.09",
+    "release_date": "2025-05-13",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.10",
+    "release_date": "2025-05-27",
+    "notes_url": null
+  },
+  {
+    "patch_id": "10.11",
+    "release_date": "2025-06-10",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.00",
+    "release_date": "2025-06-24",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.01",
+    "release_date": "2025-07-14",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.02",
+    "release_date": "2025-07-29",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.04",
+    "release_date": "2025-08-19",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.05",
+    "release_date": "2025-09-02",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.06",
+    "release_date": "2025-09-16",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.07",
+    "release_date": "2025-10-07",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.08",
+    "release_date": "2025-10-14",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.09",
+    "release_date": "2025-10-28",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.10",
+    "release_date": "2025-11-11",
+    "notes_url": null
+  },
+  {
+    "patch_id": "11.11",
+    "release_date": "2025-12-02",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.00",
+    "release_date": "2026-01-06",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.01",
+    "release_date": "2026-01-20",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.02",
+    "release_date": "2026-02-03",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.03",
+    "release_date": "2026-02-17",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.04",
+    "release_date": "2026-03-03",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.05",
+    "release_date": "2026-03-17",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.06",
+    "release_date": "2026-03-31",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.07",
+    "release_date": "2026-04-14",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.08",
+    "release_date": "2026-04-28",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.09",
+    "release_date": "2026-05-12",
+    "notes_url": null
+  },
+  {
+    "patch_id": "12.10",
+    "release_date": "2026-05-27",
+    "notes_url": null
+  }
+]

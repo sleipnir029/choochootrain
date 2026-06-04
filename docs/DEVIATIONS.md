@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — Patches sourced by scraping Riot once into a committed data/patches.json
+
+**Phase / Task:** P2.T13
+
+**Spec said:**
+P2.T13: "scrapes Riot's patch notes index … builds `data/patches.json` … Populate `patches` table. Backfill `matches.patch_id` based on date." (New external source — confirmed with Rahat.)
+
+**What was actually done (Rahat-approved):**
+`ingestion/patches.py` fetches `https://playvalorant.com/en-us/news/tags/patch-notes/` **once**, parses the embedded `__NEXT_DATA__` JSON (patch titles + release dates, `notes_url` from `action.payload.url`), and writes a **committed** `data/patches.json` (the reproducible source of truth — `--refresh` to re-scrape; default uses the JSON, no network). One page covers the full history (142 patches, `0.47`→`12.10`, all 57 from 2024 onward). `matches.patch_id` is backfilled to the latest patch with `release_date <= date_utc`.
+
+**Notes:**
+- The article date is under `publishedAt`/`publishDate`, **not** `date` (an initial wrong key gave 0 patches).
+- Backfill validated against the authoritative per-match patch label: match 312765 (2024-03-14) → `8.04`, exactly what `/v2/match/details` reported. All 436 matches resolved (0 NULL).
+
+**Impact:** `patches` table (142 rows) + every match has a patch. `data/patches.json` is committed and used offline; re-scrape only when new patches ship.
+
+**Rahat approval:** yes (scrape once, commit patches.json).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — Ingestion validation anomalies (P2.T12): showmatch + unresolved handles
 
 **Phase / Task:** P2.T12

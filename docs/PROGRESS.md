@@ -28,9 +28,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T9 — Bulk pull 2024 (complete): 436 matches / 1,105 maps / 23,401 rounds / 11,050 stats / 267 players / 515 roster rows; 99.96% handles resolved.
-**Next task:** P2.T10 — Bulk pull 2025 (`python -m scripts.bulk_ingest --year 2025 ...`), then T11 (2026 to date).
-**Open blockers:** none. Rate-limiting (429) makes the player/roster stages slow; caching mitigates re-runs. 4 one-off 2024 handles unresolved (by design).
+**Last completed task:** P2.T13 — Date→patch lookup + backfill (also did T12 validation). 2024 data fully ingested, validated, and patch-tagged.
+**Next task:** P2.T10 — Bulk pull 2025, then T11 (2026 to date). [T12 ✓, T13 ✓ done out of order per Rahat.] Then T14 phase summary + tag.
+**Open blockers:** none. Rate-limiting (429) makes the bulk player/roster stages slow; caching mitigates re-runs. 4 one-off 2024 handles unresolved (by design).
 **Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -88,6 +88,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 22:02 UTC — P2.T13 — Date→patch lookup + backfill
+
+**Done:** Added `ingestion/patches.py` — scrapes Riot's patch-notes index once (parses `__NEXT_DATA__`), writes committed `data/patches.json` (142 patches, 0.47→12.10), populates the `patches` table, and backfills `matches.patch_id` to the latest patch released on/before each match date. CLI `python -m ingestion.patches --db data/prx.db [--refresh]`. Added `tests/test_patches.py` (3 tests). Rahat-approved external source (DEVIATIONS 2026-06-04).
+
+**Learned or surprised:** article date is under `publishedAt`/`publishDate` (not `date`) — wrong key initially yielded 0. One page covers the full patch history (no pagination needed). Backfill matches the authoritative per-match label (312765 → 8.04, as the match detail said).
+
+**Verification:** `pytest tests/test_patches.py` → 3 passed (parse fixture, date-range backfill incl. before-first-patch NULL, idempotent populate); full suite **43 passed**. Live: 142 patches, **all 436 matches backfilled, 0 NULL patch_id**, FK clean; re-run from committed JSON (no network) reproduces it.
+
+**Files touched:**
+- `ingestion/patches.py` (created)
+- `data/patches.json` (created — committed source of truth)
+- `tests/test_patches.py` (created)
+- `docs/DEVIATIONS.md` (modified — patches source)
+
+**Commit:** `<pending>` — `phase-2.task-13: date→patch lookup + backfill`
 
 ### 2026-06-04 21:53 UTC — P2.T12 — Ingestion validation
 

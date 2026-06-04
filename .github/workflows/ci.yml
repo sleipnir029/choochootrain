@@ -25,8 +25,10 @@ jobs:
       - name: Python syntax check
         run: python -m compileall -q . -x 'vendor/.*'
 
-      - name: Install pytest
-        run: python -m pip install --upgrade pip pytest
+      - name: Install test dependencies
+        # Lean set: pytest + the runtime deps the ingestion tests import. Expands
+        # when modeling tests land (Phase 3 pulls in pandas/bambi/etc.).
+        run: python -m pip install --upgrade pip pytest httpx structlog
 
       - name: Run tests (placeholder — exit 5 = no tests yet, treated as pass)
         run: python -m pytest -q || [ $? -eq 5 ]

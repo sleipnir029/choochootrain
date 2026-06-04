@@ -88,6 +88,17 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 14:59 UTC — CI fix — install runtime deps for ingestion tests
+
+**Done:** The Phase-1 CI job only installed `pytest`, so P2.T3's `tests/test_teams_ingestion.py` (which imports `ingestion.teams` → `httpx`/`structlog`) failed collection on GitHub Actions with `ModuleNotFoundError: structlog`. Changed `.github/workflows/ci.yml`'s install step to `pytest httpx structlog`. To expand when modeling tests land (Phase 3 needs pandas/bambi/etc.).
+
+**Verification:** Ran the exact CI commands locally — `compileall -q . -x 'vendor/.*'` clean; `pytest -q` → 3 passed.
+
+**Files touched:**
+- `.github/workflows/ci.yml` (modified — install test deps)
+
+**Commit:** `<pending>` — `ci: install httpx+structlog so ingestion tests import`
+
 ### 2026-06-04 14:55 UTC — P2.T3 — Teams ingestion (idempotent)
 
 **Done:** Added `ingestion/teams.py` — `parse_team(segment)` (maps a `/v2/team` profile to a `teams` row), `upsert_team(conn, row)` (SQLite `ON CONFLICT(team_id) DO UPDATE`), and `ingest_teams(team_ids, db_path, *, client=None)` (async; opens a `VlrClient` if none given). CLI: `python -m ingestion.teams 624 2 --db data/prx.db`. Added `tests/test_teams_ingestion.py` (3 tests, no network — a FakeClient feeds canned segments).

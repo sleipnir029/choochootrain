@@ -103,7 +103,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `tests/test_patches.py` (created)
 - `docs/DEVIATIONS.md` (modified — patches source)
 
-**Commit:** `<pending>` — `phase-2.task-13: date→patch lookup + backfill`
+**Commit:** `952b4d4` — `phase-2.task-13: date→patch lookup + backfill`
 
 ### 2026-06-04 21:53 UTC — P2.T12 — Ingestion validation
 

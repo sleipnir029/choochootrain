@@ -57,6 +57,32 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-04 — vlrggapi team sub-resources are q-variants, not separate paths (affects Phase 2)
+
+**Phase / Task:** P1.T3 (impacts P2.T3, P2.T8, and `scheduler` roster sync)
+
+**Spec said:**
+TASKS.md P1.T3 and P2.x, plus SCHEDULER.md, assume these vlrggapi paths:
+`/v2/team/matches?id=624&page=1` and `/v2/team/transactions?id={id}`.
+
+**What was actually done:**
+Smoke test (P1.T3) hit the **actual** routes the pinned upstream (`a6075fec`) exposes. There is **no** `/v2/team/matches` or `/v2/team/transactions` path. Team match history and roster transactions are `q` variants on `/v2/team`:
+- team profile:      `GET /v2/team?id=624`            (q defaults to `profile`)
+- team matches:      `GET /v2/team?id=624&q=matches&page=1`
+- team transactions: `GET /v2/team?id=624&q=transactions`
+- team map stats:    `GET /v2/team?id=624&q=stats`
+Confirmed-correct as-documented: `/v2/events/matches?event_id=`, `/v2/match/details?match_id=`, `/v2/match?q=live_score`, `/v2/player?id=` (with `q=profile|matches`).
+
+**Why:**
+Discovered by reading `vendor/vlrggapi/routers/v2_router.py` and probing the live container before writing `scripts/smoke_vlrggapi.py`.
+
+**Impact:**
+No code yet (Phase 2 not started). Phase 2 ingestion (`ingestion/teams.py` P2.T3, `ingestion/roster_history.py` P2.T8) and the `roster_history_sync` scheduler job must use the `q=`-variant URLs above, not the separate paths the docs assume. ARCHITECTURE.md / SCHEDULER.md / TASKS.md wording can be reconciled when those tasks are built (not edited now — they're not the active task). `scripts/smoke_vlrggapi.py` already uses the correct routes.
+
+**Rahat approval:** N/A (minor; informational, no behavior change yet)
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — vlrggapi upstream is on Python 3.14, not 3.11 (minor)
 
 **Phase / Task:** P1.T2

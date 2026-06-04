@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P1.T2 — Build vlrggapi Docker image locally
-**Next task:** P1.T3 — Smoke-test the endpoints we'll rely on
+**Last completed task:** P1.T3 — Smoke-test the endpoints we'll rely on
+**Next task:** P1.T4 — Initialize project repo skeleton
 **Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
@@ -68,6 +68,20 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 12:05 UTC — P1.T3 — Smoke-test the endpoints we'll rely on
+
+**Done:** Wrote `scripts/smoke_vlrggapi.py` (stdlib-only ad-hoc tester, base URL from `VLRGGAPI_URL`) hitting the four endpoints ingestion will use and asserting the fields we depend on. All 4 pass against the running container: PRX profile (id 624 → "Paper Rex"), team match history (50 rows, latest 666493), match details for 666493 (3 maps + economy + head_to_head), and live_score (4 matches live, full round-state fields).
+
+**Learned or surprised:** The pinned upstream has **no** `/v2/team/matches` or `/v2/team/transactions` paths — they're `q=matches` / `q=transactions` variants on `/v2/team` (the docs assume separate paths). Logged in DEVIATIONS for Phase 2. Cosmetic only: non-ASCII live team names mojibake in the Windows console on `print` (data itself is fine UTF-8).
+
+**Verification:** `python scripts/smoke_vlrggapi.py` → "4/4 checks passed.", exit 0.
+
+**Files touched:**
+- `scripts/smoke_vlrggapi.py` (created)
+- `docs/DEVIATIONS.md` (modified — route-shape entry)
+
+**Commit:** `<pending>` — `phase-1.task-3: smoke-test vlrggapi endpoints`
 
 ### 2026-06-04 11:52 UTC — P1.T2 — Build vlrggapi Docker image locally
 

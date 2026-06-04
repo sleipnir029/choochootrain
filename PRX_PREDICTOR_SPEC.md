@@ -405,6 +405,8 @@ These are observations Claude Code should handle while implementing — not bloc
 - vlr.gg PRX team: https://www.vlr.gg/team/624/paper-rex
 - valorantr (rib.gg wrapper): https://github.com/tonyelhabr/valorantr
 - IEEE DataPort Peng dataset: search "Valorant Champions Tour 2024 Pacific EMEA round data"
+- Complete Valorant Champions Tour 2024 - All events: https://www.kaggle.com/datasets/piyush86kumar/valorant-champions-tour-2024-all-events
+- Valorant 2025 -All Events International + Regional: https://www.kaggle.com/datasets/piyush86kumar/valorant-vct-2025-all-events
 
 **Published prior art:**
 - Peng, Y. (2024). "A Predictive Analysis of Valorant Esports: Win Probability Through Economy and Ultimate Ability." TechRxiv.

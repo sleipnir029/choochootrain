@@ -27,10 +27,10 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 ## Current state
 
-**Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P1.T7 — Combined docker-compose dry-run
-**Next task:** P1.T8 — Phase summary (end of Phase 1)
-**Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
+**Phase:** 1 COMPLETE (tag `v0.1.0-phase-1`). Phase 0 validation (T2–T6) still deferred.
+**Last completed task:** P1.T8 — Phase 1 summary + merge to main + tag
+**Next task:** await Rahat — either Phase 2 (schema + ingestion) or resume the deferred Phase 0 validation (loadout-only via the pipeline). Do not auto-start.
+**Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
 
 ---
 
@@ -40,7 +40,25 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 *To be filled in after Phase 0 complete*
 
 ### Phase 1 — Self-host vlrggapi
-*Locked until Phase 0 complete*
+
+**Built:**
+- vlrggapi vendored as a git submodule at `vendor/vlrggapi`, pinned to `a6075fec` (+ `vendor/VERSION.txt` provenance).
+- Local Docker image `vlrggapi:a6075fe` (186MB) built from the vendored source.
+- `scripts/smoke_vlrggapi.py` — stdlib smoke tester for the 4 endpoints ingestion will use.
+- Project skeleton (`ingestion/ models/ api/ scheduler/ llm/ tests/` packages + `notebooks/ dashboard/ docker/ .github/workflows/`).
+- CI: `.github/workflows/ci.yml` (syntax check + pytest placeholder + prx-app image build), `docker/Dockerfile` (FastAPI hello-world stub), `pytest.ini`.
+- `docker/docker-compose.yml` — `vlrggapi` + `prx-app` two-service dry-run; `docker/app_stub.py`; `.dockerignore`.
+- Secret hygiene: `.gitignore` covers `.env*` (keeps `!.env.example`); `.env.example` template.
+
+**What works:** vlrggapi container health `success` (service + vlr.gg upstream Healthy); all 4 smoke endpoints pass (PRX profile, team matches, match details w/ maps+economy, live_score); GitHub Actions CI green; compose stack verified — `prx-app` reaches `http://vlrggapi:3001/v2/health` over the network.
+
+**What's pending or deferred:** **Phase 0 validation (T2–T6) remains deferred** — Peng IEEE dataset is paywalled; will resume loadout-only from vlr.gg via the Phase 2 pipeline (see DEVIATIONS 2026-06-04). The prx-app is only a hello-world stub (real app = Phase 6).
+
+**Numbers:** vlrggapi image 186MB; prx-app stub image small; smoke 4/4; CI ~1 min.
+
+**Surprises:** upstream vlrggapi is on Python 3.14 (not the SPEC's 3.11); team match/transactions are `q=` variants on `/v2/team`, not separate paths; repo is public (kept, with secrets gitignored). All logged in DEVIATIONS.
+
+**Next phase prep:** Phase 2 (schema + ingestion) can build directly on the vendored vlrggapi and the verified endpoints/field shapes. Use the `q=`-variant team URLs.
 
 ### Phase 2 — Schema + bulk ingestion
 *Locked until Phase 1 complete*
@@ -68,6 +86,17 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 13:05 UTC — P1.T8 — Phase 1 summary + merge to main + tag
+
+**Done:** Wrote the Phase 1 summary (see "Phase summaries" above), updated Current state. Merged `phase-1-vlrggapi-setup` → `main` and tagged `v0.1.0-phase-1`; pushed main + tag to origin. Phase 1 is complete; Phase 0 validation stays deferred.
+
+**Verification:** CI green through `372734b`. `git tag` shows `v0.1.0-phase-1`; `origin/main` advanced to the phase-1 tip. See commit refs below.
+
+**Files touched:**
+- `docs/PROGRESS.md` (summary + current state + this entry)
+
+**Commit:** `<pending>` — `phase-1.task-8: phase 1 summary + tag v0.1.0-phase-1`
 
 ### 2026-06-04 12:55 UTC — P1.T7 — Combined docker-compose dry-run
 

@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 1 (pulled forward) — Phase 0 validation (T2–T6) deferred, see DEVIATIONS 2026-06-04
-**Last completed task:** P0.T1 — Bootstrap Python environment
-**Next task:** P1.T1 — Vendor vlrggapi
+**Last completed task:** P1.T1 — Vendor vlrggapi
+**Next task:** P1.T2 — Build vlrggapi Docker image locally
 **Open blockers:** Peng IEEE dataset is paywalled/unobtainable; Phase 0 validation will resume after Phase 1, loadout-only from vlr.gg
 
 ---
@@ -68,6 +68,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-04 11:45 UTC — P1.T1 — Vendor vlrggapi
+
+**Done:** Added upstream vlrggapi (axsddlr/vlrggapi, Python, branch `master`) as a git submodule at `vendor/vlrggapi`, pinned to commit `a6075fec` (master tip, pushed 2026-06-04). Recorded provenance + update instructions in `vendor/VERSION.txt`. Verified the vendored source is complete and buildable: it contains `Dockerfile`, `docker-compose.yml`, `main.py`, `requirements.txt`, and `api/ routers/ models/ utils/ tests/` — everything P1.T2 needs.
+
+**Learned or surprised:** Submodule describes as `1.0.5-366-ga6075fe` (366 commits past the 1.0.5 tag), so upstream is well ahead of its last release tag — pinning to a SHA (not the tag) is the right call.
+
+**Verification:** `git submodule status` → ` a6075fec... vendor/vlrggapi (1.0.5-366-ga6075fe)`. `git -C vendor/vlrggapi rev-parse HEAD` matches the pinned SHA. `ls vendor/vlrggapi/Dockerfile` exists.
+
+**Files touched:**
+- `.gitmodules` (created)
+- `vendor/vlrggapi` (submodule gitlink, pinned `a6075fec`)
+- `vendor/VERSION.txt` (created)
+
+**Commit:** `db09a6b` — `phase-1.task-1: vendor vlrggapi as submodule pinned to a6075fe`
 
 ### 2026-06-04 11:38 UTC — P0.T2 — Deferred (Peng dataset unobtainable); reordering to Phase 1
 

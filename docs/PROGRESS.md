@@ -101,7 +101,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `tests/test_roster_history.py` (created)
 - `docs/DEVIATIONS.md` (modified — transactions-broken rationale)
 
-**Commit:** `<pending>` — `phase-2.task-8: roster history from player profiles`
+**Commit:** `23f020d` — `phase-2.task-8: roster history from player profiles`
 
 ### 2026-06-04 15:52 UTC — P2.T7 — Player profile ingestion (resolve handles → player_id)
 

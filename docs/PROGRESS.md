@@ -118,7 +118,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Files touched:**
 - `docs/PROGRESS.md` (Phase 2 summary + current state + this entry)
 
-**Commit:** `<pending>` — `phase-2.task-14: phase 2 summary + tag`; tag `v0.1.0-phase-2`
+**Commit:** `e0cff4f` — `phase-2.task-14: phase 2 summary + tag`; tag `v0.1.0-phase-2`
 
 ### 2026-06-04 23:35 UTC — P2.T10 done (2025); T11 (2026) failed on upstream circuit breaker; bulk resilience fix
 

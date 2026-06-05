@@ -63,6 +63,15 @@ def test_parse_match_builds_row():
     assert row["series_name"] == "Round 1"
 
 
+def test_parse_match_prefers_listing_date_with_year():
+    # vlr omits the year in the detail date for current-year matches; the
+    # /v2/events/matches listing date carries it -> must be preferred.
+    seg = _detail("9", ("1", "A", "2", True), ("2", "B", "0", False),
+                  date="Thursday, January 15 11:00 PM CET Patch 12.0")
+    row = parse_match(seg, 1, match_date="Thu, January 15, 2026")
+    assert row["date_utc"] == "2026-01-15"
+
+
 def _setup_db(tmp_path) -> str:
     db = str(tmp_path / "prx.db")
     init_db(db)

@@ -61,8 +61,15 @@ def parse_match_date(date_str: str) -> str:
     raise ValueError(f"unparseable date {token!r}")
 
 
-def parse_match(detail: dict, event_id: int, *, match_url: str | None = None) -> dict:
-    """Build a `matches` row from a /v2/match/details segment."""
+def parse_match(detail: dict, event_id: int, *, match_url: str | None = None,
+                match_date: str | None = None) -> dict:
+    """Build a `matches` row from a /v2/match/details segment.
+
+    `match_date` (from the /v2/events/matches listing) is preferred for the date:
+    it reliably carries the year (e.g. 'Sat, February 28, 2026'), whereas the
+    match-detail date omits the year for current-year matches
+    ('Thursday, January 15 11:00 PM CET Patch 12.0'). Falls back to the detail date.
+    """
     teams = detail["teams"]
     t1, t2 = teams[0], teams[1]
     s1, s2 = int(t1["score"]), int(t2["score"])
@@ -82,7 +89,7 @@ def parse_match(detail: dict, event_id: int, *, match_url: str | None = None) ->
         "team1_score": s1,
         "team2_score": s2,
         "winner_id": winner_id,
-        "date_utc": parse_match_date(detail.get("date", "")),
+        "date_utc": parse_match_date(match_date or detail.get("date", "")),
         "format": infer_format(s1, s2),
         "patch_id": None,  # backfilled in P2.T13
         "match_url": match_url,
@@ -154,7 +161,7 @@ async def ingest_event_matches(event_id: int, db_path: str, *, client: VlrClient
             try:
                 detail = await client.get_segments("/v2/match/details", match_id=str(mid))
                 seg = detail[0]
-                row = parse_match(seg, event_id, match_url=entry.get("url"))
+                row = parse_match(seg, event_id, match_url=entry.get("url"), match_date=entry.get("date"))
                 for team in seg["teams"]:
                     upsert_team_from_match(conn, team)
                 upsert_match(conn, row)

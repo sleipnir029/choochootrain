@@ -27,11 +27,10 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 ## Current state
 
-**Phase:** 2 IN PROGRESS — schema + bulk ingestion. (Phase 0 validation T2–T6 still deferred.)
-**Last completed task:** P2.T13 — Date→patch lookup + backfill (also did T12 validation). 2024 data fully ingested, validated, and patch-tagged.
-**Next task:** P2.T10 — Bulk pull 2025, then T11 (2026 to date). [T12 ✓, T13 ✓ done out of order per Rahat.] Then T14 phase summary + tag.
-**Open blockers:** none. Rate-limiting (429) makes the bulk player/roster stages slow; caching mitigates re-runs. 4 one-off 2024 handles unresolved (by design).
-**Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`).
+**Phase:** 2 COMPLETE (tag `v0.1.0-phase-2`). Awaiting Rahat go-ahead for Phase 3 (statistical modeling). Do not auto-start.
+**Last completed task:** P2.T14 — Phase 2 summary + tag. All 14 tasks done; 2024–2026 tier-1 data ingested, validated, patch-tagged.
+**Next task:** P3.T1 — Team Elo update logic (only after Rahat's go-ahead). [Phase 0 validation T2–T6 still deferred.]
+**Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
 ---
@@ -63,7 +62,24 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Next phase prep:** Phase 2 (schema + ingestion) can build directly on the vendored vlrggapi and the verified endpoints/field shapes. Use the `q=`-variant team URLs.
 
 ### Phase 2 — Schema + bulk ingestion
-*Locked until Phase 1 complete*
+
+**Built:**
+- SQLite schema (`ingestion/schema.py`, 16 tables/11 indexes) + the full ingestion package: `vlr_client` (async, retries, 429-aware, **disk cache**, request throttling), `teams`, `events` (+`tier1_events` registry), `matches`, `match_details`, `players` (handle→ID resolution), `roster_history` (from player profiles), `patches` (Riot scrape→`data/patches.json`).
+- `scripts/`: `bulk_ingest.py` (year orchestrator, `--skip-events/--skip-matches/--min-interval`), `validate_ingestion.py`, `smoke_vlrggapi.py`.
+- 45 tests (unit, no-network via fakes/MockTransport); CI green.
+
+**What works — warehouse spans 2024–2026 tier-1 (FK clean):**
+- 43 events, 1,258 matches, 3,203 maps, 67,799 rounds, 32,030 map_player_stats, 4,862 map_team_economy, 69 teams, 505 players, 864 roster_history, 142 patches.
+- Rounds-completeness: 2024 100% / 2025 99.8% / 2026 100%. 0 NULL winners, 0 NULL patch_id.
+- Verified done-whens: PRX team/match data; Masters Madrid→London events; per-match maps/rounds/stats/economy; PRX roster on 2025-06-22 = f0rsakeN/Jinggg/d4v41/something/PatMen; patch backfill matches the per-match label (312765→8.04).
+
+**What's pending or deferred:** Phase 0 validation (T2–T6) still deferred (Peng paywalled). 391 stat rows (1.2%, 29 handles) unresolved player_id (subs/casing — by design). 2 showmatch/forfeit matches with 0 maps; 3 incomplete maps.
+
+**Numbers:** see table above. HTTP cache ~tens of MB (gitignored, rebuildable).
+
+**Surprises (all in DEVIATIONS):** vlrggapi exposes names not IDs for teams/players (resolved via match-detail IDs / search+team-context); `/v2/team?q=transactions` broken (roster from player profiles); `/v2/events` unusable for tier-1 (curated ID registry); match dates omit the year for the current year (use listing date); sustained load trips vlrggapi's vlr.gg circuit breaker (added throttling + per-event resilience). map_player_stats re-keyed to handle (schema change).
+
+**Next phase prep:** Phase 3 (modeling) can build on a clean, patch-tagged, FK-consistent warehouse. Use `players_on_team_at()` for roster-aware features; exclude `series_name LIKE 'Showmatch%'` from competitive aggregates.
 
 ### Phase 3 — Statistical modeling
 *Locked until Phase 2 complete*
@@ -88,6 +104,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-05 00:32 UTC — P2.T11 (2026) + P2.T14 — Phase 2 complete
+
+**Done:** **T11 — 2026 bulk complete** after fixing the date bug: 13 events, 318 matches, 821 maps, 17,424 rounds, 8,210 player_stats, 276 players resolved, 864 roster rows, 0 failures. Re-ran the patch backfill over all matches (1,258 updated, **0 NULL**). **T14 — Phase 2 summary written + tagging `v0.1.0-phase-2`.**
+
+**Root cause of the 2026 "0 matches":** not the circuit breaker — vlr omits the year in `/v2/match/details` dates for current-year matches (`'Thursday, January 15 … Patch 12.0'`), so `parse_match_date` skipped all 318. Fixed by using the `/v2/events/matches` listing date (carries the year). Commit `dcc76db`. The cached match data made the fixed re-run near-instant.
+
+**Final warehouse (2024–2026, FK clean):** 43 events, 1,258 matches, 3,203 maps, 67,799 rounds, 32,030 map_player_stats, 4,862 economy, 69 teams, 505 players, 864 roster, 142 patches. Completeness 100/99.8/100% per year. 391 stat rows (1.2%) unresolved player_id; 2 showmatch matches w/0 maps; 3 incomplete maps.
+
+**Verification:** `scripts/validate_ingestion.py` report (`logs/ingestion_validation.txt`): 0 NULL winner, 0 NULL patch, FK check empty. Full test suite 45 passed.
+
+**Files touched:**
+- `docs/PROGRESS.md` (Phase 2 summary + current state + this entry)
+
+**Commit:** `<pending>` — `phase-2.task-14: phase 2 summary + tag`; tag `v0.1.0-phase-2`
 
 ### 2026-06-04 23:35 UTC — P2.T10 done (2025); T11 (2026) failed on upstream circuit breaker; bulk resilience fix
 

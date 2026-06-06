@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T7 — Combined prediction (`models/predict.py`): pre-match Bambi prior + live log-odds pooling with score-state. Sample PRX map: pre 0.334, up 9-3 → 0.852, down 3-9 → 0.065.
-**Next task:** P3.T8 — Validation on holdout (`notebooks/02_model_validation.py`): accuracy, Brier, calibration on Masters Toronto 2025 + Santiago 2026.
+**Last completed task:** P3.T8 — Holdout validation (`notebooks/02_model_validation.py`). **Result is BELOW SPEC target — surfaced to Rahat, decision pending before T9.** Masters holdout acc 50.9% (< majority 55.1% / Elo-sign 54.2%); model ≈ Elo-sign everywhere; in-sample only ~57% (signal ceiling, not overfitting).
+**Next task:** P3.T9 — Phase 3 summary — **BLOCKED** pending Rahat's call on the T8 underperformance (accept Elo-dominated v1 vs iterate).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,25 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T8 — Validation on holdout (result below target — flagged)
+
+**Done:** Added `notebooks/02_model_validation.py` (marimo) — batch-predicts all post-cutoff maps from the saved posterior, reports accuracy/Brier + majority & Elo-sign baselines on the primary holdout (Masters Toronto 2025 + Santiago 2026), per-tier context across all post-cutoff maps, and a calibration plot. Runs headless.
+
+**Numbers:**
+- **Primary holdout (Masters Toronto+Santiago, n=118): acc 50.9%, Brier 0.257, ECE 0.15** — *below* majority 55.1% and Elo-sign 54.2%, and far short of SPEC §6.3 (65-75% / 0.20-0.23). (Brier 0.257 > 0.25, i.e. worse than a constant 0.5 here — miscalibrated on this slice.)
+- All post-cutoff (n=1816): model 57.0% vs Elo-sign 58.0%, Brier 0.242. Per tier: RegionalLeague 59.5% (elo 59.8), Kickoff 52.8, Masters 50.9, Champions 44.3.
+- In-sample (train) acc only ~56.6%.
+
+**Learned / surprised (IMPORTANT):** The model **essentially reproduces the Elo-sign baseline** on every slice (and the extra features — map offsets, recent form, H2H, patch/tier pooling — add ~no marginal signal; matches the T5 posterior where `elo_diff` dominated, others ≈0). Elite events (Masters/Champions = top, evenly-matched teams) are near-coinflips at map level (corr(elo_diff, won) 0.04–0.12) — the T8-mandated holdout is the *hardest* possible slice; regional play is more predictable (~60%). Low **in-sample** accuracy confirms this is a **signal ceiling**, not overfitting or a bug (orientation verified: corr(elo,y) positive throughout, Elo-sign > 50%). Per CLAUDE.md ("two results not matching expectations → surface"), **stopped to ask Rahat** before the Phase 3 summary.
+
+**Verification:** `python notebooks/02_model_validation.py` runs end-to-end headless and prints all metrics above; full test suite still **87 passed** (no model code changed this task).
+
+**Files touched:**
+- `notebooks/02_model_validation.py` (created)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-8: holdout validation (result below target)`
 
 ### 2026-06-06 — P3.T7 — Combined prediction function
 

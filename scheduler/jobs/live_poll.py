@@ -87,6 +87,62 @@ def write_live_state(conn, state):
     conn.commit()
 
 
+def to_predict_live_state(state):
+    """Map a poller live_state to models.predict's live_state shape.
+
+    predict's score-state lookup wants **round counts on the current map** (not the
+    map/series score) + team1's current side. Side is best-effort: live_score
+    doesn't expose the current side, so infer the first-half side from team1's wins
+    (default ct at 0-0) and flip in the second half (DEVIATIONS 2026-06-06).
+    """
+    t1 = (state.get("team1_round_ct") or 0) + (state.get("team1_round_t") or 0)
+    t2 = (state.get("team2_round_ct") or 0) + (state.get("team2_round_t") or 0)
+    total = t1 + t2
+    half = "first" if total < 12 else ("second" if total < 24 else "ot")
+    first_half_ct = (state.get("team1_round_ct") or 0) >= (state.get("team1_round_t") or 0)
+    if half == "second":
+        team1_side = "t" if first_half_ct else "ct"
+    else:
+        team1_side = "ct" if first_half_ct else "t"
+    return {"half": half, "team1_score": t1, "team2_score": t2, "team1_side": team1_side}
+
+
+def write_live_prediction(conn, match_id, map_index, prob):
+    """Append a live win-prob to live_predictions (PK incl. microsecond timestamp)."""
+    conn.execute(
+        "INSERT INTO live_predictions (match_id, map_index, computed_at, team1_win_prob) "
+        "VALUES (?, ?, ?, ?)",
+        (match_id, map_index, datetime.now(timezone.utc).isoformat(), prob),
+    )
+    conn.commit()
+
+
+def make_prediction_callback(db_path="data/prx.db"):
+    """Build an on_change callback that re-predicts the map and stores it.
+
+    NOTE: `predict_map_win_prob` needs the match's ingested map features, so live
+    prediction works only for matches already in the warehouse; an un-ingested live
+    match raises and is swallowed by poll_once's guard (upcoming-match prediction is
+    a Phase-6 feature). See DEVIATIONS 2026-06-06.
+    """
+    from models.predict import predict_map_win_prob  # heavy (bambi/arviz) — import lazily
+
+    def on_change(state, changed):
+        map_index = (state.get("map_number") or 1) - 1
+        live_state = to_predict_live_state(state)
+        prob = predict_map_win_prob(state["match_id"], map_index,
+                                    live_state=live_state, db_path=db_path)
+        conn = sqlite3.connect(db_path)
+        try:
+            write_live_prediction(conn, state["match_id"], map_index, prob)
+        finally:
+            conn.close()
+        logger.info("live_prediction", match_id=state["match_id"], map_index=map_index,
+                    team1_win_prob=round(prob, 4))
+
+    return on_change
+
+
 async def poll_once(client, conn, last_state, on_change=None):
     """One poll: fetch live_score, select a match, log/persist, fire on_change.
 
@@ -147,7 +203,8 @@ def main():
     ap.add_argument("--poll", type=float, default=30.0)
     ap.add_argument("--once", action="store_true", help="single poll then exit")
     args = ap.parse_args()
-    asyncio.run(run(args.db, idle_interval=args.idle, poll_interval=args.poll, once=args.once))
+    asyncio.run(run(args.db, idle_interval=args.idle, poll_interval=args.poll, once=args.once,
+                    on_change=make_prediction_callback(args.db)))
 
 
 if __name__ == "__main__":

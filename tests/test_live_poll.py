@@ -6,13 +6,19 @@ driven with asyncio.run (no pytest-asyncio), mirroring the ingestion tests.
 
 import asyncio
 import sqlite3
+from pathlib import Path
+
+import pytest
 
 from ingestion.schema import init_db
 from scheduler.jobs.live_poll import (
+    make_prediction_callback,
     parse_live_segment,
     poll_once,
     select_match,
     state_changed,
+    to_predict_live_state,
+    write_live_prediction,
     write_live_state,
 )
 
@@ -129,3 +135,61 @@ def test_on_change_exception_is_swallowed(tmp_path):
     # a change with a raising callback must not propagate
     b = asyncio.run(poll_once(FakeClient([[_seg(3, "1", "0")]]), conn, a, on_change=boom))
     assert b["team1_score"] == 1               # poll completed despite the callback error
+
+
+def test_to_predict_live_state_maps_rounds_and_half():
+    # round counts (not the 0/0 map score) drive the score-state lookup
+    s = parse_live_segment(_seg(1, "0", "0", team1_round_ct="7", team1_round_t="0",
+                                team2_round_ct="0", team2_round_t="5", map_number="2"))
+    ls = to_predict_live_state(s)
+    assert ls["team1_score"] == 7 and ls["team2_score"] == 5
+    assert ls["half"] == "second"              # 7+5 = 12 rounds played -> second half
+    assert ls["team1_side"] in ("ct", "t")
+
+
+def test_to_predict_live_state_half_boundaries():
+    def half_for(t1ct, t1t, t2ct, t2t):
+        s = {"team1_round_ct": t1ct, "team1_round_t": t1t,
+             "team2_round_ct": t2ct, "team2_round_t": t2t}
+        return to_predict_live_state(s)["half"]
+    assert half_for(0, 0, 0, 0) == "first"     # 0 rounds
+    assert half_for(6, 0, 0, 5) == "first"     # 11
+    assert half_for(7, 0, 0, 6) == "second"    # 13
+    assert half_for(13, 0, 0, 12) == "ot"      # 25
+
+
+def test_write_live_prediction_inserts_row(tmp_path):
+    conn = _conn(tmp_path)
+    write_live_prediction(conn, 42, 1, 0.73)
+    row = conn.execute("SELECT match_id, map_index, team1_win_prob, computed_at "
+                       "FROM live_predictions").fetchone()
+    assert row["match_id"] == 42 and row["map_index"] == 1
+    assert abs(row["team1_win_prob"] - 0.73) < 1e-9 and row["computed_at"]
+
+
+@pytest.mark.skipif(
+    not (Path("data/prx.db").exists() and Path("models/saved/bayes_logistic.nc").exists()),
+    reason="needs data/prx.db + trained posterior",
+)
+def test_prediction_callback_stores_per_change(tmp_path):
+    pytest.importorskip("bambi")
+    conn = _conn(tmp_path)  # temp db holds live_state; predictions go to the real db
+    # Use the real warehouse for both prediction and live_predictions writes.
+    cb = make_prediction_callback("data/prx.db")
+    # Clear any prior live_predictions for this ingested match, then simulate 2 changes.
+    real = sqlite3.connect("data/prx.db")
+    real.execute("DELETE FROM live_predictions WHERE match_id = 666493")
+    real.commit()
+    states = [_seg(666493, "0", "0", map_number="1", team1_round_ct="5", team1_round_t="0",
+                   team2_round_ct="0", team2_round_t="3"),
+              _seg(666493, "0", "0", map_number="1", team1_round_ct="6", team1_round_t="0",
+                   team2_round_ct="0", team2_round_t="3")]
+    client = FakeClient([[s] for s in states])
+    last = None
+    for _ in states:
+        last = asyncio.run(poll_once(client, conn, last, on_change=cb))
+    rows = real.execute("SELECT team1_win_prob FROM live_predictions "
+                        "WHERE match_id = 666493").fetchall()
+    real.close()
+    assert len(rows) == 1                       # one change (round 5->6) -> one stored prediction
+    assert 0.0 < rows[0][0] < 1.0

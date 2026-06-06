@@ -30,8 +30,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
 **Phase:** 5 in progress (live update logic). Phases 0–4 complete + tagged. Rahat gave go-ahead for Phase 5.
-**Last completed task:** P5.T2 — Score-change callback (`scheduler/jobs/live_poll.py`): `poll_once`/`run` take `on_change`, fired exactly once per same-match change (errors swallowed); 9 tests.
-**Next task:** P5.T3 — Hook score-change to re-prediction (`on_change` → `models.predict.predict_map_win_prob` → `live_predictions`).
+**Last completed task:** P5.T3 — Hook score-change → re-prediction (`make_prediction_callback` maps live_state, calls `predict_map_win_prob`, writes `live_predictions`); simulated ingested match stores a prediction per change.
+**Next task:** P5.T4 — Priority logic for multiple live matches (PRX > Champions > Masters > Regional > earliest).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -143,6 +143,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P5.T3 — Hook score-change to re-prediction
+
+**Done:** Added to `scheduler/jobs/live_poll.py`: `to_predict_live_state` (poller state → predict's `{half, team1_score, team2_score, team1_side}` from round counts; best-effort side), `write_live_prediction` (→ `live_predictions`, microsecond `computed_at`), and `make_prediction_callback(db_path)` — an `on_change` that calls `predict_map_win_prob` and stores the result. Wired into `main()`. Extended `tests/test_live_poll.py` (+4). Mapping + the un-ingested-match limitation in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** the poller's `team1_score/team2_score` are *map/series* scores, not the round scores the score-state lookup needs — derived round scores from the per-side round fields. Real (un-ingested) live matches can't be predicted yet (predict needs ingested features) → error swallowed by the T2 guard; deferred to Phase 6. Simulated the done-when with an ingested match.
+
+**Verification:** `pytest tests/test_live_poll.py -q` → 13 passed (mapping + half boundaries + write always; guarded integration: ingested match 666493 + 2 fake states → exactly one `live_predictions` row, 0<prob<1). Full suite **119 passed**.
+
+**Files touched:**
+- `scheduler/jobs/live_poll.py` (modified — mapping, prediction write, callback factory, main wiring)
+- `tests/test_live_poll.py` (modified — T3 tests)
+- `docs/DEVIATIONS.md` (modified — live_state mapping + gap), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-5.task-3: hook score-change to re-prediction`
 
 ### 2026-06-06 — P5.T2 — Score-change detection (callback)
 

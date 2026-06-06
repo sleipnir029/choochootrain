@@ -57,6 +57,24 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Live re-prediction (P5.T3): round-count live_state mapping; real-live-match gap
+
+**Phase / Task:** P5.T3
+
+**Spec said:**
+TASKS P5.T3: on a detected change, call `models.predict.predict_map_win_prob` with live_state; store to `live_predictions`. Done-when: for a simulated live match, predictions recomputed + stored on each score change.
+
+**What was actually done:**
+`scheduler/jobs/live_poll.py` adds `to_predict_live_state` + `write_live_prediction` + `make_prediction_callback(db_path)`, wired into `main()` as the `on_change` callback. Two notes:
+- **live_state mapping:** predict's score-state lookup wants **round counts on the current map** + team1's current side; the poller's `team1_score/team2_score` are *map/series* scores, so the mapping derives round scores from `team{1,2}_round_{ct,t}`, `half` from total rounds (<12 first / <24 second / else ot), and `map_index = map_number-1`. **`team1_side` is best-effort** — live_score doesn't expose the current side, so it's inferred from team1's per-side wins and flipped at half (can be wrong mid-map; the score-state side term is small).
+- **Real-live-match gap (key):** `predict_map_win_prob` needs the match's **ingested** map features (`build_training_data`), so live prediction works only for matches already in the warehouse. A real, in-progress (un-ingested) match raises `ValueError`, swallowed by poll_once's guard (logged) — the poller survives but stores no prediction. Upcoming/live-match feature construction is a Phase-6 item (same gap as P3.T7). The done-when was met by simulating with an ingested match (666493 + fake live states → a `live_predictions` row per change, 0<prob<1).
+
+**Impact:** `live_predictions` populated for ingested matches; `computed_at` uses microsecond ISO to avoid PK collisions on rapid changes. No schema change. Phase 6 must add upcoming-match features for true live use.
+
+**Rahat approval:** N/A (implements P5.T3; gap is informational, deferred to Phase 6).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Live poller (P5.T1): writes live_state table; minimal match-selection; FK note
 
 **Phase / Task:** P5.T1

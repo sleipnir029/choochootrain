@@ -29,9 +29,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Phase:** Phases 3 (`v0.1.0-phase-3`) + 4 (`v0.1.0-phase-4`) complete — `skill_diff` integrated into the pre-match model (broad holdout 0.583 acc, beats Elo-sign 0.580). Awaiting Rahat go-ahead for Phase 5 (live update logic). Do not auto-start.
-**Last completed task:** Integrated player-skill feature + wrote Phase 3 (T9) and Phase 4 (T5) summaries.
-**Next task:** P5.T1 — Live score poller (`scheduler/jobs/live_poll.py`), only after Rahat's go-ahead.
+**Phase:** 5 in progress (live update logic). Phases 0–4 complete + tagged. Rahat gave go-ahead for Phase 5.
+**Last completed task:** P5.T1 — Live score poller (`scheduler/jobs/live_poll.py`): polls live_score, writes `live_state` (singleton), logs score changes; 6 tests + live `--once` smoke.
+**Next task:** P5.T2 — Score-change detection (formalize `state_changed` → fire callback once per change).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -143,6 +143,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P5.T1 — Live score poller
+
+**Done:** Started Phase 5. Added `scheduler/jobs/live_poll.py` (+ `scheduler/jobs/__init__.py`) — pure seams (`parse_live_segment`, `state_changed`, `select_match`, `write_live_state`) + async `poll_once` / `run` IDLE-POLLING loop. Writes the tracked match to the singleton `live_state` table and logs every score change; `VlrClient(cache=False)`; `--once` CLI. Match-selection is minimal (PRX-preferred) — full tier-1/priority is T4. Added `tests/test_live_poll.py` (6 tests). Choices in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** live_score round/score fields arrive as strings or `"N/A"` → parsed to int/NULL. Chose the `live_state` table over a bare in-memory cache (per SCHEDULER.md, for cross-process API reads). FK to `matches` is safe (enforcement off; a live match may be un-ingested).
+
+**Verification:** `pytest tests/test_live_poll.py -q` → 6 passed (parse N/A, state_changed incl. different-match, PRX selection, singleton write, poll_once persists a score change, no-live-match). Full suite **112 passed**. Live smoke: started the vlrggapi container, `python -m scheduler.jobs.live_poll --once --db data/prx.db` → reached `/v2/match?q=live_score` (200) and logged `no_live_match` (none live now); container stopped.
+
+**Files touched:**
+- `scheduler/jobs/live_poll.py` (created), `scheduler/jobs/__init__.py` (created)
+- `tests/test_live_poll.py` (created)
+- `docs/DEVIATIONS.md` (modified — T1 choices), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-5.task-1: live score poller`
 
 ### 2026-06-06 — Integration + Phase 3 (T9) & Phase 4 (T5) summaries
 

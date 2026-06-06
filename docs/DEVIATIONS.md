@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Live poller (P5.T1): writes live_state table; minimal match-selection; FK note
+
+**Phase / Task:** P5.T1
+
+**Spec said:**
+TASKS P5.T1: poll `/v2/match?q=live_score` every 30s when a tier-1 match is live; write state to in-memory cache **or** `live_state` table (choose one). SCHEDULER.md: IDLE 60s / POLLING 30s state machine; PRX > Champions > Masters > Regional > earliest priority.
+
+**What was actually done:**
+`scheduler/jobs/live_poll.py` writes to the **`live_state` SQLite table** (singleton — `DELETE` + insert the tracked match), per SCHEDULER.md, so the Phase-6 API can read it cross-process; an in-memory `last_state` drives change detection. `VlrClient(cache=False)`; async IDLE/POLLING loop; `--once` for a single cycle.
+
+Two intentional T1 simplifications:
+- **Match selection is minimal** — prefer a "Paper Rex" segment, else the first live one. Full tier-1 detection + the SPEC-D3 priority order is **P5.T4** (the `live_score` segment carries no event/tier, so tier-1 filtering needs more than the poll response).
+- **FK:** `live_state.match_id → matches(match_id)`, but a live match may not be ingested yet; SQLite FK enforcement is off (never enabled), so the insert is safe. Round/score fields arrive as strings/`"N/A"` → parsed to int or NULL (columns nullable).
+
+**Impact:** done-when (logs every score change) verified by unit tests (`poll_once` across a score change) + a live `--once` smoke against the container (logged `no_live_match`; real score-change logging needs an actual live match). P5.T2 formalizes change→callback on `state_changed`; T3 adds `live_predictions`; T4 adds priority.
+
+**Rahat approval:** N/A (follows SCHEDULER.md; documented deferrals to T2–T4).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Player-skill feature integrated into the pre-match model
 
 **Phase / Task:** Phase 3 revisit → integration (Rahat-approved)

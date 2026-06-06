@@ -29,8 +29,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Last completed task:** P4.T3 — Expected stats (`models/expected_stats.py`): match-level recent-form baseline + mild opponent-Elo term; PRX match 666493 MAE(ACS)=24.9 (done-when ≤30).
-**Next task:** P4.T4 — Validation (`notebooks/03_player_skill_validation.py`). **Phase 3 summary (T9) still held open** pending the player-skill-lift check.
+**Last completed task:** P4.T4 — Player-skill validation (`notebooks/03_player_skill_validation.py`): Masters Toronto 2025 expected-vs-actual — ACS MAE 27.2 (≤30), K/D/A MAE 2.6/2.2/1.8.
+**Next task:** P4.T5 — Phase 4 summary (`docs/PROGRESS.md`, tag v0.1.0-phase-4) — then the held-open **Phase 3 revisit** (does team-aggregated player skill lift map prediction?).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -120,6 +120,20 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P4.T4 — Player-skill validation
+
+**Done:** Added `notebooks/03_player_skill_validation.py` (marimo) — applies `predict_expected_stats` to every map-resolved player in Masters Toronto 2025 (event 2282, time-held-out), reports MAE + bias per stat and an expected-vs-actual ACS scatter. Runs headless.
+
+**Numbers (Toronto 2025, 24 matches, 239 player rows, mean history 91 maps):** ACS MAE **27.2** (bias +6.0), kills 2.55, deaths 2.16, assists 1.78 (actual means 194/14.7/14.7/5.7). ACS within the ±30 done-when. Slight positive ACS bias — players underperformed recent form at this elite event (consistent with "elite events are harder").
+
+**Verification:** `python notebooks/03_player_skill_validation.py` runs end-to-end headless and prints the metrics above; full suite **105 passed** (no model code changed).
+
+**Files touched:**
+- `notebooks/03_player_skill_validation.py` (created)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-4.task-4: player-skill validation`
 
 ### 2026-06-06 — P4.T3 — Expected player stats prediction
 

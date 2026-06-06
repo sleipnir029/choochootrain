@@ -57,6 +57,30 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Training data: point-in-time replay; row count = competitive maps (3197)
+
+**Phase / Task:** P3.T4
+
+**Spec said:**
+TASKS P3.T4: build a per-map feature row (elo_diff, map_elo_diff, team1_starts_atk_or_def, recent_form_team1/2, h2h_team1_win_rate, patch_id, tier; target team1_won). Done when: DataFrame produced; no NaN; **row count matches map count in DB**.
+
+**What was actually done:**
+`models/training_data.build_training_data(conn)` makes a **single chronological pass** over matches and computes every feature point-in-time (from state strictly before the match), advancing Elo / map-win counts / form / H2H only after emitting a match's rows. This recomputes Elo inline via `models.elo.update_elo` (and the P3.T3 offset formula) rather than reading the `elo_ratings`/`elo_map_offsets` snapshot tables — those are full-history snapshots and would leak future info into the P3.T8 holdout.
+
+Decisions baked in:
+- **Row count = 3197**, not the 3203 in `maps`. The 6 difference are maps on **showmatch** matches (some showmatches do have maps), excluded for consistency with P3.T2/T3. So "row count matches map count" holds for the *competitive* map set.
+- **recent_form** = win fraction over the last `FORM_WINDOW = 5` maps; **0.5** when a team has no prior maps (avoids NaN, neutral prior). Form/Elo/H2H are snapshotted **pre-match** (same for all maps in a match), so map 3 doesn't peek at maps 1–2 of its own series.
+- **h2h_team1_win_rate** = map-level, empirical-Bayes shrunk toward 0.5 with `H2H_PRIOR = 4` (`(t1_wins + 2) / (total + 4)`); 0.5 when no prior meetings.
+- **team1_starts_atk_or_def** = 1 if team1's round-1 side is T (attack), else 0. **1 map** has no round-1 row → falls back to 0 (logged via `df.attrs['side_fallbacks']`).
+- `patch_id` (TEXT) and `tier` kept as categoricals for Bambi (P3.T5).
+
+**Impact:**
+Clean, leak-free features for P3.T5/T8. `FORM_WINDOW` and `H2H_PRIOR` are tunable knobs (K-factor precedent). No schema change.
+
+**Rahat approval:** N/A (minor; implements the approved P3.T4 with documented neutral-prior / shrinkage choices).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Map offsets: win-rate deviation converted to Elo points via a tunable scale
 
 **Phase / Task:** P3.T3

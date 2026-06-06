@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T3 — Map-specific Elo offsets (`models/elo_map_offsets.py`): 625 (team,map) offsets; PRX 12 maps (Sunset +63 … Ascent −37), per-team sums ~0 in win-rate space.
-**Next task:** P3.T4 — Training data builder for the Bayesian regression (`models/training_data.py`).
+**Last completed task:** P3.T4 — Training data builder (`models/training_data.py`): point-in-time per-map features, 3197 rows (= competitive maps), 0 NaN, target balance 0.505.
+**Next task:** P3.T5 — Fit Bambi logistic regression (`models/bayes_logistic.py`, `models/saved/bayes_logistic.nc`).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,23 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T4 — Training data builder for Bayesian regression
+
+**Done:** Added `models/training_data.build_training_data(conn)` — a single chronological pass that emits one point-in-time feature row per competitive map: `elo_diff`, `map_elo_diff`, `team1_starts_atk_or_def`, `recent_form_team1/2`, `h2h_team1_win_rate`, `patch_id`, `tier`; target `team1_won`. State (Elo via `update_elo`, per-(team,map) win counts for offsets, last-5 form, EB-shrunk H2H) is snapshotted pre-match and advanced only after each match — no holdout leakage. In-module `--db` CLI. Added `tests/test_training_data.py` (8 tests). CI now installs `pandas`. Design choices in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** "Row count matches map count" = 3197, not 3203 — the 6 gap is maps on **showmatch** matches (some showmatches *do* have maps), excluded like in P3.T2/T3. Only 1 map lacks round-1 data → side falls back to 0 (tracked in `df.attrs['side_fallbacks']`). Recompute Elo inline rather than reading `elo_ratings` (those snapshots are post-match/full-history → would leak).
+
+**Verification:** `pytest tests/test_training_data.py -q` → 8 passed (neutral first match, target+side encoding, Elo/offset/H2H/form evolve pre-match, showmatch exclusion, side fallback, no-NaN). Full suite **72 passed**. Live `python -m models.training_data --db data/prx.db` → shape (3197, 15), **0 NaN**, team1_won mean 0.505; elo_diff std 66 (±240), h2h shrunk around 0.5 (std 0.12).
+
+**Files touched:**
+- `models/training_data.py` (created)
+- `tests/test_training_data.py` (created)
+- `.github/workflows/ci.yml` (modified — install pandas)
+- `docs/DEVIATIONS.md` (modified — point-in-time / row-count note)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-4: point-in-time training data builder`
 
 ### 2026-06-06 — P3.T3 — Map-specific Elo offsets
 

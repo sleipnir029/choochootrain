@@ -57,6 +57,25 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Dashboard: state-driven views (not path routing); D3 opponent; Docker deferred (P6.T4–T10)
+
+**Phase / Task:** P6.T4–T10
+
+**Spec said:**
+ARCHITECTURE §7.3 lists client routes `/`, `/match/:id`, `/team/:id`, `/player/:id`. TASKS P6.T3 lists deps Recharts + axios. P6.T10 done-when: `docker compose up` serves the dashboard at `http://localhost:8000/`.
+
+**What was actually done:**
+- **State-driven view switching, no react-router.** The top-bar mode switcher (Live/Pre-match/Player/Replay) + a contextual ID input drive a single-page view via component state — matching the T4/T9 task wording ("switcher toggles state", "auto-detect shows the right panel") without adding `react-router-dom`. Manual entry of a match/player ID replaces path params. Minor UX deviation from §7.3's path routes; deep-linkable URLs are a later nicety (YAGNI for v1).
+- **Added `@tanstack/react-query`** beyond the T3 dep list (Recharts + axios) — it's the state manager ARCHITECTURE §7.2 already prescribes; used for caching/polling. Not a new stack decision.
+- **D3 default (no live match) uses a representative PRX matchup (624 vs 188).** D3 says "pre-match panel for PRX's next scheduled match", but vlrggapi's upcoming feed exposes team **names, not IDs** (P2.T5 deviation), and the prediction needs both team IDs — so the opponent can't be reliably resolved to an ID. The no-live default renders a real upcoming prediction for PRX vs Sentinels; a match-ID input switches to any ingested match. Resolving the true next opponent's ID is a later enhancement (needs a name→ID lookup).
+- **Docker image validation deferred to Phase 8.** P6.T10's app-level behavior — FastAPI serving the built `dashboard/dist` at `/` alongside `/api` and `/docs` — is implemented and **verified locally with uvicorn/TestClient**. The full `docker compose up --build` (heavy bambi/pymc image, posterior + warehouse via volume mounts) is deployment work that overlaps Phase 8 (GHCR, health checks, volumes); the Dockerfile (Node build stage + Python app) and compose (data + `models/saved` volumes) are written but the container build is validated in Phase 8.
+
+**Impact:** No schema change, no API change. The dashboard is fully functional served locally. Phase 8 builds/validates the container and finalizes deployment.
+
+**Rahat approval:** yes (frontend go-ahead). Routing/opponent/Docker scoping are implementation calls within that.
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — API contract reconciled to reality (P6.T1)
 
 **Phase / Task:** P6.T1

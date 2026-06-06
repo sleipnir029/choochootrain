@@ -11,10 +11,12 @@ Run:
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from api.deps import db_path
 from api.routes import events, matches, players, predict, teams
@@ -51,3 +53,14 @@ for module in (predict, teams, players, events, matches):
 @app.get("/api/health")
 def health():
     return {"status": "ok", "db": db_path()}
+
+
+# Serve the built React dashboard from / (P6.T10), if it has been built. Mounted
+# last so it only catches paths the /api/* routes (and /docs) didn't. ``html=True``
+# serves index.html for /. DASHBOARD_DIST overrides the location (set in Docker).
+_DIST = Path(os.environ.get("DASHBOARD_DIST")
+             or Path(__file__).resolve().parent.parent / "dashboard" / "dist")
+if _DIST.is_dir():
+    app.mount("/", StaticFiles(directory=str(_DIST), html=True), name="dashboard")
+else:
+    logger.info("dashboard_not_built", expected=str(_DIST))

@@ -158,6 +158,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — P6.T10 — Build + serve dashboard from FastAPI
+
+**Done:** `api/main.py` mounts the built `dashboard/dist` at `/` via `StaticFiles(html=True)` (guarded by dir existence; `DASHBOARD_DIST` override) — mounted **last** so `/api/*` and `/docs` win. Rewrote `docker/Dockerfile` as a multi-stage build (Node 24 builds the dashboard → Python 3.11 installs `requirements.txt` + app + `dist`, sets `DASHBOARD_DIST`). Updated `docker/docker-compose.yml`: `prx-app` runs the real app (`uvicorn api.main:app`), `DATA_DIR=/data`, with `../data:/data` + `../models/saved` volume mounts.
+
+**Learned or surprised:** Mount order matters — registering routers (and FastAPI's `/docs`) before the `/` mount keeps the SPA from shadowing them. The full `docker compose up --build` (heavy bambi/pymc image + posterior/warehouse via volumes) overlaps Phase-8 deployment, so it's **deferred to Phase 8**; the app-level serving is verified locally (DEVIATIONS 2026-06-06).
+
+**Verification:** TestClient against the built bundle — `GET /` → 200 `text/html` with the React root div; `/api/health` → ok; `/docs` → 200; `/assets/*.js` → 200 `application/javascript`. Full suite **141 passed** (static mount executes at import; no test regressions).
+
+**Files touched:**
+- `api/main.py` (modified — StaticFiles mount)
+- `docker/Dockerfile` (rewritten — multi-stage), `docker/docker-compose.yml` (modified — real app + volumes)
+- `docs/DEVIATIONS.md` (frontend choices entry), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-6.task-10: serve dashboard from fastapi + multi-stage docker`
+
 ### 2026-06-06 — P6.T4–T9 — Dashboard UI (shell + 4 panels + auto-detect)
 
 **Done:** Built the dashboard UI. **T4 shell** (`App.tsx`, dark theme in `index.css`, TanStack Query in `main.tsx`): sticky top bar with a live/no-live mode pill + manual switcher (Live/Pre-match/Player/Replay) + a contextual ID input. Typed API client `src/lib/api.ts` (axios, mirrors the §3 contract). **T5 `PreMatchPanel`**: series win-prob bar (`WinProbBar`), per-map probs, top-factor breakdown with HDI; works in both ingested + upcoming modes. **T6 `LivePanel`**: `useQuery` with `refetchInterval: 30_000`, scoreline + current-map prob + a Recharts probability sparkline; handles `no_live`. **T7 `PlayerPanel`**: per-team-**stint** table (D2 — no cross-team pooling) + a per-stint ACS bar chart. **T8 `ReplayPanel`**: round-by-round probability line chart per map. **T9 auto-detect (D3)**: on mount queries `/api/predict/live` → Live panel if live, else Pre-match for PRX's next matchup (default 624-vs-188 until schedule/veto known); manual switcher always overrides.

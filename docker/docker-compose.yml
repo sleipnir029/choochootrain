@@ -16,9 +16,16 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: prx-app:stub
+    image: prx-app:0.1.0
     environment:
       - VLRGGAPI_URL=http://vlrggapi:3001
+      - DATA_DIR=/data
+    # The warehouse + posterior live on the host and are mounted read-write so the
+    # scheduler can append. Build them first (Phase 2/3) — see docs. data/prx.db,
+    # data/patches.json, models/saved/bayes_logistic.nc.
+    volumes:
+      - ../data:/data
+      - ../models/saved:/app/models/saved
     ports:
       - "8000:8000"
     depends_on:

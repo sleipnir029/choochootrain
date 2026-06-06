@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T1 — Team Elo update logic (`models/elo.py`, pure functions, margin-of-victory).
-**Next task:** P3.T2 — Replay all matches to compute current Elo (`models/elo_replay.py`, `scripts/build_elo.py`).
+**Last completed task:** P3.T2 — Elo replay (`models/elo_replay.py` + `scripts/build_elo.py`): top-5 plausible (PRX #2, NRG #3, EDG #7, T1 #9, SEN #15).
+**Next task:** P3.T3 — Map-specific Elo offsets (`models/elo_map_offsets.py`).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,23 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T2 — Replay all matches to compute current Elo
+
+**Done:** Added `models/elo_replay.py` — `replay_elo(conn, *, k, initial_rating)` reads completed matches in `(date_utc, match_id)` order, applies `models.elo.update_elo` per match, and rebuilds the `elo_ratings` table (daily snapshot per team; full DELETE-then-insert = idempotent). Showmatches excluded (`series_name LIKE 'Showmatch%'`). Added `scripts/build_elo.py` CLI (`--db/--k/--initial/--top`) that replays and prints top-N. Added `tests/test_elo_replay.py` (5 tests). Flat 1500 prior — region priors deferred (`teams.region` NULL; DEVIATIONS 2026-06-06).
+
+**Learned or surprised:** All 1258 matches have non-zero scores, consistent `winner_id`, 0 NULL winners — no `ValueError`/skip cases beyond the 8 showmatches. A team that plays on two dates gets two snapshot rows (initial idempotency-test count was wrong; fixed). 1250 matches replayed (1258 − 8 showmatches), 55 teams rated.
+
+**Verification:** `pytest tests/test_elo_replay.py -q` → 5 passed (zero-sum, fresh-team-at-1500, showmatch exclusion, same-day snapshot collapse, idempotent rebuild). Full suite **59 passed**. Live `python -m scripts.build_elo --db data/prx.db` → done-when met: **PRX #2 (1657), NRG #3 (1608), EDG #7 (1583), T1 #9 (1579), Sentinels #15 (1541)** all in top 15; G2 #1 (1670) plausible (2025–26 form).
+
+**Files touched:**
+- `models/elo_replay.py` (created)
+- `scripts/build_elo.py` (created)
+- `tests/test_elo_replay.py` (created)
+- `docs/DEVIATIONS.md` (modified — flat-prior note)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-2: elo replay -> elo_ratings`
 
 ### 2026-06-06 — P3.T1 — Team Elo update logic
 

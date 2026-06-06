@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Elo replay uses a flat 1500 prior (region-based priors deferred)
+
+**Phase / Task:** P3.T2
+
+**Spec said:**
+SPEC §6.2 Layer 1: "Initialize ratings using region-based priors so early-season is not arbitrary." TASKS P3.T2: "Initial rating per region: 1500 (configurable)."
+
+**What was actually done:**
+`models/elo_replay.py` starts every team at a flat `INITIAL_RATING = 1500.0` (configurable via `--initial`). Region-based priors are **not** applied because `teams.region` is NULL for all 69 teams (the `/v2/team` profile doesn't expose region — see DEVIATIONS 2026-06-04, P2.T3). This satisfies the literal TASKS P3.T2 wording (flat 1500) but not SPEC §6.2's region-prior intent.
+
+**Why:**
+Region is simply unavailable in the warehouse, so a region-keyed prior can't be computed yet. A flat prior is the correct minimal choice until region is backfilled (e.g. from `/v2/rankings?region=...` or each team's event set).
+
+**Impact:**
+Early-season ratings are arbitrary (all start equal), as SPEC §6.2 warned. Mitigated in practice because the replay spans 2024–2026, so ratings converge well before the holdout window (Masters Toronto 2025 / Santiago 2026). If region priors are wanted later: backfill `teams.region`, then pass a per-team initial map into `replay_elo` (the signature already takes `initial_rating`; would generalize to a dict). No schema change now.
+
+**Rahat approval:** N/A (minor; follows TASKS P3.T2 literally, region genuinely unavailable).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Elo actual-outcome term is margin-of-victory, not binary
 
 **Phase / Task:** P3.T1

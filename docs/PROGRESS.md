@@ -133,7 +133,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 - `.gitignore` (modified — marimo artifacts), `docs/DEVIATIONS.md` (reframe entry)
 - `docs/PROGRESS.md` (Phase 0 summary + this entry)
 
-**Commit:** `<pending>` — `phase-0.task-3-7: round-level validation (reframed) + tag`
+**Commit:** `913d3f0` — `phase-0.task-3-7: round-level validation (reframed) + tag`
 
 ### 2026-06-05 00:32 UTC — P2.T11 (2026) + P2.T14 — Phase 2 complete
 

@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Elo actual-outcome term is margin-of-victory, not binary
+
+**Phase / Task:** P3.T1
+
+**Spec said:**
+SPEC §6.2 Layer 1: "Each team gets a rating. Update after each match. K-factor calibrated empirically (start at K=24)." Says "standard Elo" without pinning how the actual-outcome term is derived from a series score.
+
+**What was actually done (Rahat-approved):**
+`models/elo.update_elo(rating_a, rating_b, score_a, score_b, k=24)` computes the actual outcome as **margin-of-victory** — `actual_a = score_a / (score_a + score_b)` — so a 2-0 sweep moves Elo more than a 2-1 win (vs a binary 1/0/0.5 outcome where 2-0 and 2-1 move identically). Expected score is standard logistic (400 divisor); update is zero-sum (`delta_b = -delta_a`). Raises `ValueError` on a 0-0 score (no valid completed match).
+
+**Why:**
+The function signature passes both series scores, and Rahat chose to use that margin signal rather than discard it. A clean win carries more information about relative strength than a deciding-map win.
+
+**Impact:**
+Affects every downstream Elo value (P3.T2 replay, P3.T3 map offsets) and any feature built on Elo diffs. No schema or UX impact. K and the outcome formula are the obvious tuning knobs for the 2024–2025 holdout calibration.
+
+**Rahat approval:** yes (chose margin-of-victory over binary this session).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Phase 0 validation reframed: no per-round loadout; economy descriptive + score-state baseline
 
 **Phase / Task:** P0.T3–T6 (deferred validation, resumed after Phase 2)

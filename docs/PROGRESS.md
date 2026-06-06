@@ -27,9 +27,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 ## Current state
 
-**Phase:** 2 complete (`v0.1.0-phase-2`) + deferred Phase 0 validation done (`v0.1.0-phase-0`). Awaiting Rahat go-ahead for Phase 3 (statistical modeling). Do not auto-start.
-**Last completed task:** P0.T3–T7 — round-level validation (reframed, no per-round loadout): side+score-state logistic 55.4%.
-**Next task:** P3.T1 — Team Elo update logic (only after Rahat's go-ahead).
+**Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
+**Last completed task:** P3.T1 — Team Elo update logic (`models/elo.py`, pure functions, margin-of-victory).
+**Next task:** P3.T2 — Replay all matches to compute current Elo (`models/elo_replay.py`, `scripts/build_elo.py`).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T1 — Team Elo update logic
+
+**Done:** Started Phase 3 (Rahat go-ahead). Added `models/elo.py` — pure, no-DB-I/O Elo math: `expected_score(a, b)` (standard logistic, 400 divisor) and `update_elo(rating_a, rating_b, score_a, score_b, k=24)` returning `(new_a, new_b)`. Actual outcome is **margin-of-victory** (`score_a/(score_a+score_b)`) per Rahat's choice this session (DEVIATIONS 2026-06-06); update is zero-sum; 0-0 raises `ValueError`. Added `tests/test_elo.py` (9 tests).
+
+**Learned or surprised:** Nothing unexpected — the only open design point was binary vs margin-of-victory outcome (SPEC §6.2 only says "standard Elo, K=24"); Rahat chose margin-of-victory.
+
+**Verification:** `pytest tests/test_elo.py -q` → 9 passed (win 1512/1488, loss 1488/1512, draw no-change, 2-0 > 2-1, zero-sum invariant, K override, expected_score, 0-0 ValueError). Full suite **54 passed**. `update_elo(1500,1500,2,0)` → `(1512.0, 1488.0)`.
+
+**Files touched:**
+- `models/elo.py` (created)
+- `tests/test_elo.py` (created)
+- `docs/DEVIATIONS.md` (modified — margin-of-victory note)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-1: team elo update logic`
 
 ### 2026-06-06 12:25 UTC — P0.T3–T7 — Deferred Phase 0 validation (reframed) + tag
 

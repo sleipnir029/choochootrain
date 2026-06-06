@@ -27,18 +27,33 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 ## Current state
 
-**Phase:** 2 COMPLETE (tag `v0.1.0-phase-2`). Awaiting Rahat go-ahead for Phase 3 (statistical modeling). Do not auto-start.
-**Last completed task:** P2.T14 — Phase 2 summary + tag. All 14 tasks done; 2024–2026 tier-1 data ingested, validated, patch-tagged.
-**Next task:** P3.T1 — Team Elo update logic (only after Rahat's go-ahead). [Phase 0 validation T2–T6 still deferred.]
-**Open blockers:** Peng IEEE dataset paywalled (Phase 0 loadout-only when resumed); repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design).
+**Phase:** 2 complete (`v0.1.0-phase-2`) + deferred Phase 0 validation done (`v0.1.0-phase-0`). Awaiting Rahat go-ahead for Phase 3 (statistical modeling). Do not auto-start.
+**Last completed task:** P0.T3–T7 — round-level validation (reframed, no per-round loadout): side+score-state logistic 55.4%.
+**Next task:** P3.T1 — Team Elo update logic (only after Rahat's go-ahead).
+**Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
 ---
 
 ## Phase summaries
 
-### Phase 0 — Peng dataset validation
-*To be filled in after Phase 0 complete*
+### Phase 0 — Peng dataset validation (reframed; done after Phase 2)
+
+**Built:** `notebooks/00_round_eda.py` (round/economy EDA) + `notebooks/01_round_baseline.py` (round-winner logistic) — marimo, run headless via `python notebooks/*.py`.
+
+**What works / found (on the 67,799-round 2024–2026 warehouse):**
+- Toolchain validated end-to-end: SQL → pandas feature build → time-aware split (by map date) → sklearn LogisticRegression → accuracy.
+- **Loadout signal (descriptive):** eco rounds win ~42.7% vs ~54% for buys (~11pt) — matches Peng's thesis that loadout dominates, but only visible in aggregate (no per-round loadout from vlrggapi).
+- **Side:** barely predictive (CT 50.3% / T 50.7% team1 win) — pro maps are balanced.
+- **Fitted baseline:** side-only = 49.9% (chance); **side + score-state = 55.4%** test accuracy (lift from `score_diff` — leading teams win more), vs 50.1% majority baseline.
+
+**What's pending or deferred:** Not a literal Peng replication (no per-round loadout / ultimate features). 55.4% < Peng's 60.6% — the gap is the loadout signal we can't see per round (DEVIATIONS 2026-06-06).
+
+**Numbers:** 55.4% round accuracy (side+score-state), +5.3pt over majority baseline; `score_diff` is the dominant available feature.
+
+**Surprises:** vlrggapi exposes no per-round loadout; `map_team_economy` stores win-% not counts (economy validated descriptively). Side alone is non-predictive at the (arbitrary) team1 level.
+
+**Next phase prep:** `score_diff` carries into the Phase 3 score-state model; loadout won't be a round-level feature.
 
 ### Phase 1 — Self-host vlrggapi
 
@@ -104,6 +119,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 12:25 UTC — P0.T3–T7 — Deferred Phase 0 validation (reframed) + tag
+
+**Done:** Resumed the deferred Phase 0 validation against the warehouse (Rahat-approved reframe — no per-round loadout, DEVIATIONS 2026-06-06). Added two marimo notebooks: `00_round_eda.py` (round/economy EDA) and `01_round_baseline.py` (round-winner logistic). Wrote the Phase 0 summary; tagging `v0.1.0-phase-0`.
+
+**Learned or surprised:** vlrggapi exposes no per-round loadout (Peng's exact model unbuildable). Loadout signal validated descriptively (eco 42.7% vs buys ~54%). Side non-predictive (~50.3/50.7%). Fitted side+score-state logistic = **55.4%** test accuracy (vs 50.1% majority; lift from `score_diff`), short of Peng's 60.6% — the gap is the unavailable loadout signal, confirming Peng's thesis.
+
+**Verification:** `python notebooks/00_round_eda.py` and `…/01_round_baseline.py` both run end-to-end headless; full suite 45 passed.
+
+**Files touched:**
+- `notebooks/00_round_eda.py`, `notebooks/01_round_baseline.py` (created)
+- `.gitignore` (modified — marimo artifacts), `docs/DEVIATIONS.md` (reframe entry)
+- `docs/PROGRESS.md` (Phase 0 summary + this entry)
+
+**Commit:** `<pending>` — `phase-0.task-3-7: round-level validation (reframed) + tag`
 
 ### 2026-06-05 00:32 UTC — P2.T11 (2026) + P2.T14 — Phase 2 complete
 

@@ -57,6 +57,27 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Phase 0 validation reframed: no per-round loadout; economy descriptive + score-state baseline
+
+**Phase / Task:** P0.T3–T6 (deferred validation, resumed after Phase 2)
+
+**Spec said:**
+SPEC §3.2 / TASKS P0.T2–T6: replicate Peng's round-level logistic on 3 features (team loadout diff, ult-availability diff, ult-points diff) → ~60.6% round accuracy. The 2026-06-04 deferral assumed a "loadout-only" replication was possible from vlr.gg per-round loadout values.
+
+**What was actually done (Rahat-approved):**
+Confirmed the pinned vlrggapi (`a6075fe`) exposes **no per-round loadout** — only map-level buy-category aggregates (`/v2/match/details` economy = pistol/eco/$/$$/$$$ counts+wins per team per map), and `rounds` has only `{winner, side, half}`. So Peng's round-level loadout-diff model is **not reproducible**. Reframed to two validations on our warehouse:
+1. **Economy/loadout signal — descriptive** (`notebooks/00_round_eda.py`): win% by buy category from `map_team_economy`, showing the monotonic loadout effect (eco < semi < full). Note `map_team_economy` stores win **%** (not round counts; counts were lossy at ingest), so this is descriptive, not a fitted per-round logistic.
+2. **Score-state round-level logistic — fitted** (`notebooks/01_round_baseline.py`): predict round winner from `team1_side` + pre-round score diff (+ half), reconstructed from `rounds`. Proves the sklearn toolchain end-to-end and directly seeds the Phase 3 score-state model.
+
+Notebooks renamed from `00_peng_eda`/`01_peng_baseline` to `00_round_eda`/`01_round_baseline` (not Peng data).
+
+**Impact:**
+Not a literal Peng replication. Expected accuracy ~52–56% (side+score-state); loadout — Peng's dominant signal — is unavailable at round level, so we won't hit ~60%. Toolchain validated regardless. If a fitted economy model is later wanted, `map_team_economy` would need round-count columns (schema change + cheap re-parse from cached details).
+
+**Rahat approval:** yes (both: economy-signal descriptive + score-state baseline).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-04 — Patches sourced by scraping Riot once into a committed data/patches.json
 
 **Phase / Task:** P2.T13

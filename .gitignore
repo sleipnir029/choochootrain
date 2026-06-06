@@ -235,3 +235,8 @@ data/http_cache/
 # PRX Predictor — generated logs/reports (keep the dir, ignore contents)
 logs/*
 !logs/.gitkeep
+
+# PRX Predictor — marimo notebook artifacts
+.marimo/
+notebooks/__pycache__/
+*.html

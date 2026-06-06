@@ -29,8 +29,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Last completed task:** P4.T2 — Player-skill replay (`scripts/build_player_skill.py`): 477 players rated, 439 with ≥10 maps; top by mu−3σ = aspas/Derke/Alfajer/zekken/t3xture (face-valid).
-**Next task:** P4.T3 — Expected stats prediction (`models/expected_stats.py`). **Phase 3 summary (T9) still held open** pending the player-skill-lift check.
+**Last completed task:** P4.T3 — Expected stats (`models/expected_stats.py`): match-level recent-form baseline + mild opponent-Elo term; PRX match 666493 MAE(ACS)=24.9 (done-when ≤30).
+**Next task:** P4.T4 — Validation (`notebooks/03_player_skill_validation.py`). **Phase 3 summary (T9) still held open** pending the player-skill-lift check.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -120,6 +120,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P4.T3 — Expected player stats prediction
+
+**Done:** Planned-then-executed (Rahat asked to plan first). Added `models/expected_stats.predict_expected_stats(match_id)` — match-level expected ACS/K/D/A from each player's recent-form mean (last 30 maps, point-in-time; fallbacks career→league) + a mild opponent-Elo ACS adjustment (from `elo_ratings`, `opponent_coef=0.06`). Map term dropped (empirically harmful). In-module `--db/--match-id` CLI. Added `tests/test_expected_stats.py` (6 tests). Granularity/decision rationale in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** Per-map ACS is unpredictable (MAE ~43; map offset made it worse); match-level recent-form gets to the ±30 floor. MAE is ~30 on a broad recent sample (≈half of matches ≤30) but ~25 on stable lineups. Opponent-Elo term helps only ~0.2 MAE (kept, marginal). Predictions read sensibly (f0rsakeN expected 201 vs actual 266 → over-performer flagged — the panel's purpose).
+
+**Verification:** `pytest tests/test_expected_stats.py -q` → 6 passed (recent-form windowing, point-in-time no-leak on a synthetic DB, unknown-match raises, real-match sane). Full suite **105 passed**. Live `python -m models.expected_stats --db data/prx.db` (PRX match 666493): **MAE(ACS)=24.9 across 10 players** (done-when met).
+
+**Files touched:**
+- `models/expected_stats.py` (created)
+- `tests/test_expected_stats.py` (created)
+- `docs/DEVIATIONS.md` (modified — match-level/recent-form rationale), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-4.task-3: expected player stats`
 
 ### 2026-06-06 — P4.T2 — Replay to compute current player skills
 

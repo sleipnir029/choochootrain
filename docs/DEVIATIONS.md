@@ -57,6 +57,27 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Expected stats: match-level recent-form baseline; map term dropped; ±30 is the floor
+
+**Phase / Task:** P4.T3
+
+**Spec said:**
+TASKS P4.T3: `expected_stats.py` predicts each player's expected ACS/K/D/A from "skill + opponent + map"; done when predicted ACS within ±30 of actual on average across 10 players.
+
+**What was actually done (evidence-driven):**
+A read-only feasibility check showed **per-map ACS is unpredictable** (career-mean MAE ~43; a per-map map offset made it *worse*). At **match level** (a player's mean ACS over the match's maps) a **recent-form** baseline hits the target. So `models/expected_stats.predict_expected_stats(match_id)` predicts match-level expected stats:
+- **skill** = recent-form mean of each stat over the last `FORM_MAPS=30` maps before the match (fallback: career mean → league per-stat mean);
+- **opponent** = a mild ACS multiplier from the opposing team's pre-match Elo (`elo_ratings`, as-of before the match; `DEFAULT_OPP_COEF=0.06`). It only improves sample MAE by ~0.2 (monotonic, theoretically sound) — kept but marginal; `opponent_coef=0` disables it;
+- **map term dropped** — it measurably increased error.
+
+**On the ±30 done-when:** match-level ACS MAE is **~30 on a broad recent sample** (right at the noise floor; ~half of matches ≤30) and **~25 on stable, established lineups** (e.g. PRX match 666493 = **MAE 24.9** across 10 players). Per-map prediction (~43) cannot meet ±30 — match-level is required. This mirrors the Phase 3 finding: player ACS is high-variance; ±30 is essentially the achievable floor.
+
+**Impact:** `predict_expected_stats` depends on `elo_ratings` being built (P3.T2) for the opponent term (degrades to 1500/no-op if absent). Upcoming-match prediction (no maps yet → roster-based participants) is deferred to Phase 6. Per-(agent,map) expected stats not needed (match-level meets the goal).
+
+**Rahat approval:** approach chosen from the analysis at Rahat's direction ("choose based on the analysis"); plan approved.
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Player-skill replay: overall rating only; ACS-vs-opponent performance, mean-of-5 opponent
 
 **Phase / Task:** P4.T2

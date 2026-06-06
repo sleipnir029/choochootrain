@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Dashboard redesign: insight-first, PRX-centric, view-shaped API (P6 revision)
+
+**Phase / Task:** P6 revision (post-tag, Rahat-directed)
+
+**Spec said:**
+SPEC §1 / §7.2 / §6.2-Layer-5 frame the product as a PRX-centric tool with **narrative** explanations ("PRX 67% because…") and an **expected-vs-actual** panel — not a raw stat browser. The first Phase-6 dashboard (T3–T10) shipped raw charts + manual match/player **ID inputs**, which Rahat flagged as "just charts, no insight … like vlr.gg … picking up by id is wasteful."
+
+**What was actually done (approved redesign):**
+- **Templated narrative composer** `api/insight.py` (pure, no LLM): `prematch_insight` / `postmatch_insight` / `live_insight` + `biggest_swing`. Returns `{headline, points, tone}`, PRX-framed. The SPEC's §7.2 LLM stays Phase 7 — it will rephrase the *same* structured inputs. (Decision: templated now, LLM-ready.)
+- **Surfaced the built-but-unexposed expected-vs-actual layer** (`models/expected_stats.predict_expected_stats`) — over/under-performance vs each player's baseline.
+- **View-shaped endpoints** (one call per screen, vs many REST calls): `GET /api/home` (PRX rank + roster skill + live/next/last-match hero + recent results with **model-was-right/wrong**), `GET /api/matches/{id}` (prediction + insight + replay + expected-vs-actual + outcome), `GET /api/players/{id}` (skill **percentile** + stints + expected-vs-actual trend). New `api/compute.py` composes these; `build_replay` extracted from the replay route for reuse. `recent_prx_results` is process-cached (static data, avoids re-predicting on every home load).
+- **Frontend rebuilt** as `pages/{HomePage,MatchPage,PlayerPage}` with **`react-router-dom`** (real `/`, `/match/:id`, `/player/:id` URLs per ARCHITECTURE §7.3) — the mode-switcher + numeric **ID inputs are gone**; navigation is by clicking recent matches / roster cards. Narrative (`<Insight>`) leads every view; charts are support. Old panels deleted.
+- **vite `base` changed `'./'` → `'/'`** (absolute asset URLs) so client routes resolve `/assets/*` under the new FastAPI **SPA fallback** (`api/main.py` serves `index.html` for non-`/api`, non-asset paths so deep links/refresh work).
+
+**Impact:** No schema or model-internals change; reuses `predict`/`upcoming`/`expected_stats`/`elo_ratings`/`player_skill`. The first-cut panels (`PreMatchPanel` etc.) are removed. Live hero still needs the P5 poller; next-match hero still needs vlrggapi (degrades to the last-match story offline). Verified end-to-end with Playwright (Home → click match → click player; 0 console errors).
+
+**Rahat approval:** yes (chose templated-insight-now + full PRX-centric redesign).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Dashboard: state-driven views (not path routing); D3 opponent; Docker deferred (P6.T4–T10)
 
 **Phase / Task:** P6.T4–T10

@@ -121,3 +121,68 @@ table.stints tr:hover td { background: var(--panel-2); }
 .scoreline { font-size: 22px; font-weight: 700; }
 .scoreline .t1 { color: var(--team1); }
 .scoreline .t2 { color: var(--team2); }
+
+/* --- P6 revision: PRX-centric, insight-first --- */
+.topbar .brand { text-decoration: none; color: var(--text); }
+.topbar .brand h1 { color: var(--text); }
+
+.prx-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; }
+.prx-head h2 { margin: 0; font-size: 24px; }
+.rank-chip { font-size: 13px; color: var(--accent); border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; }
+
+/* Insight narrative block — the lead element */
+.insight { border-left: 3px solid var(--muted); padding: 4px 0 4px 14px; margin: 12px 0; }
+.insight-headline { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+.insight-points { margin: 0; padding-left: 18px; color: var(--text); }
+.insight-points li { margin: 3px 0; font-size: 14px; }
+.insight.tone-favourite, .insight.tone-expected { border-left-color: var(--good); }
+.insight.tone-underdog, .insight.tone-upset { border-left-color: var(--team2); }
+.insight.tone-coinflip { border-left-color: var(--accent); }
+.insight.tone-live { border-left-color: var(--good); }
+
+/* Hero card */
+.hero-card { display: block; text-decoration: none; color: inherit; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 18px; transition: border-color .15s; }
+a.hero-card:hover { border-color: var(--team1); }
+.hero-tag { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+.hero-tag.live { color: var(--good); font-weight: 700; }
+.hero-cta { margin-top: 12px; font-size: 13px; color: var(--team1); }
+
+/* Recent results */
+.recent-list { display: flex; flex-direction: column; gap: 2px; }
+.recent-row { display: grid; grid-template-columns: 28px 1fr 54px 96px 110px 24px; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 6px; text-decoration: none; color: var(--text); font-size: 14px; }
+.recent-row:hover { background: var(--panel-2); }
+.recent-row .res { font-weight: 700; text-align: center; border-radius: 4px; }
+.recent-row .res.win { color: var(--good); }
+.recent-row .res.loss { color: var(--team2); }
+.recent-row .score { font-variant-numeric: tabular-nums; }
+.recent-row .date { font-size: 12px; }
+.recent-row .pred { font-size: 12px; color: var(--muted); text-align: right; }
+.recent-row .mark.ok { color: var(--good); }
+.recent-row .mark.miss { color: var(--team2); }
+
+/* Roster cards */
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+.roster-card { text-decoration: none; color: var(--text); background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; text-align: center; transition: border-color .15s; }
+.roster-card:hover { border-color: var(--team1); }
+.rc-handle { font-weight: 600; }
+.rc-name { font-size: 11px; }
+.rc-skill { font-size: 22px; font-weight: 700; color: var(--accent); margin-top: 6px; }
+
+/* Skill percentile bar */
+.pctile { height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; margin-top: 4px; }
+.pctile > div { height: 100%; background: var(--accent); }
+
+/* Over/under-performance */
+.over { color: var(--good); font-weight: 600; }
+.under { color: var(--team2); font-weight: 600; }
+table.stints td.over { color: var(--good); }
+table.stints td.under { color: var(--team2); }
+
+/* Recent-form list (player) */
+.form-list { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.form-row { display: grid; grid-template-columns: 92px 1fr 80px 70px 48px; align-items: center; gap: 10px;
+  padding: 6px 8px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.form-row .date { font-size: 12px; }

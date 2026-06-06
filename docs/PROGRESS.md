@@ -175,6 +175,24 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — P6 revision — insight-first, PRX-centric dashboard
+
+**Done:** Rahat's feedback: the dashboard was "just charts, no insight … like vlr.gg … picking players/matches by id is wasteful." Rebuilt it to the SPEC's actual vision (§1/§7.2/Layer-5) — **PRX-centric, narrative-first, click-through**. Backend: `api/insight.py` (templated narrative — pre/post/live + biggest-swing, PRX-framed, LLM-ready), `api/compute.py` + 3 **view-shaped endpoints** (`/api/home`, `/api/matches/{id}`, `/api/players/{id}`) that surface the previously-unexposed **expected-vs-actual** layer, **model-was-right/wrong** on recent matches, PRX **Elo rank**, roster **skill**, and player **percentile**. Frontend: `react-router-dom` + `pages/{Home,Match,Player}` — **ID inputs removed**, navigation by clicking recent matches / roster; `<Insight>` leads every view, charts support. Match view fully **PRX-framed** (per-map, factors "favours Paper Rex", replay rises for PRX). FastAPI **SPA fallback** + vite `base '/'` so deep links work.
+
+**Learned or surprised:**
+- The whole insight layer was *latent* — `predict_expected_stats` already returned expected+actual; it just needed exposing + narrating ("f0rsakeN stepped up: 266 vs ~201 expected (+66)").
+- `base: './'` breaks deep-link asset resolution with a router (browser fetches `/match/assets/…`) → must be `'/'` + an SPA fallback that serves `index.html` for non-`/api` paths.
+- The model's recent calls read well: 5/6 recent PRX matches correct; the one MISS (a 1-2 loss it gave 65%) is exactly the kind of upset the post-match "✗" surfaces.
+
+**Verification:** `npm run build` clean; full suite **144 passed** (+3 view-endpoint tests; home/match guarded for bambi, player view light). **Playwright** end-to-end: Home (PRX #2/55, last-match story, recent ✓/✗, roster) → click match (`/match/666493`: prematch+postmatch narrative, PRX-framed maps/factors/replay, expected-vs-actual ±delta) → click player (`/player/…`: 96th-pct skill, exp-vs-actual trend, stints) — **0 console errors**, deep links work.
+
+**Files touched:**
+- backend: `api/insight.py`, `api/compute.py`, `api/routes/home.py` (created); `api/routes/{predict,matches,players}.py`, `api/main.py` (modified); `tests/test_api.py` (+3)
+- frontend: `dashboard/src/lib/api.ts`, `App.tsx`, `main.tsx`, `index.css`, `vite.config.ts` (rewritten/modified); `components/Insight.tsx`, `pages/{HomePage,MatchPage,PlayerPage}.tsx` (created); old `components/{PreMatchPanel,LivePanel,PlayerPanel,ReplayPanel}.tsx` (deleted); `react-router-dom` added
+- `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `phase-6.revision: insight-first PRX-centric dashboard`
+
 ### 2026-06-07 — P6 fixes — replay perf + chart sizing (Playwright review)
 
 **Done:** Rahat ran the dashboard (`uvicorn api.main:app`) and reviewed it with Playwright; flagged issues. Drove the live app headlessly (chromium) + screenshotted every panel. Found and fixed two real issues:

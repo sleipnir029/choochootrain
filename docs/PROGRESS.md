@@ -158,6 +158,16 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — P6.T3 — React + Vite dashboard scaffold
+
+**Done:** Rahat gave the frontend go-ahead. Scaffolded `dashboard/` via `create-vite` (react-ts), installed `recharts`, `axios`, `@tanstack/react-query` (ARCHITECTURE §7.2). Configured `vite.config.ts`: `base: './'` (so the built bundle works when FastAPI serves it from `/` in T10) + a dev proxy `/api → http://localhost:8000` (so `npm run dev` hits the real API; overridable via `VITE_API_URL`).
+
+**Verification:** `npm install` clean (0 vulnerabilities); `npm run build` succeeds (tsc + vite bundle). Scaffold `.gitignore` covers `node_modules`/`dist`.
+
+**Files touched:** `dashboard/**` (scaffold), `dashboard/vite.config.ts` (proxy + base), `docs/PROGRESS.md`.
+
+**Commit:** `<pending>` — `phase-6.task-3: react+vite dashboard scaffold`
+
 ### 2026-06-06 — P6.T2 — FastAPI server + upcoming-match feature builder
 
 **Done:** Built the Phase-6 backend. New `api/` package: `main.py` (FastAPI app, CORS, lazy/opt-in `PRX_WARM` resource warming via lifespan), `deps.py` (per-request sqlite conn, `check_same_thread=False` for async routes), and one router per resource — `predict.py` (pre-match ingested+upcoming / replay / live), `teams.py`, `players.py`, `events.py`, `matches.py`. New `models/upcoming.py` closes the long-standing **upcoming-match gap**: `build_upcoming_features` reads snapshot/history tables (latest `elo_ratings`, current-roster mean `player_skill.mu`, last-5-map form, EB-shrunk H2H) into the FORMULA's feature columns, and `predict_upcoming_win_prob` runs it through `models.predict`'s cached Bambi model. Added `predict_map_win_prob_detailed` + `detailed_from_row` + `_top_factors` to `models/predict.py` (mean + HDI + coef×feature attribution) — the float `predict_map_win_prob` is untouched (P5 poller safe). `fastapi`/`uvicorn` added to `requirements.txt` + CI. Tests: `tests/test_api.py` (TestClient shapes, D2 stint partitioning, graceful no-vlrggapi) + `tests/test_upcoming.py` (feature shape/sign/antisymmetry + guarded predict).

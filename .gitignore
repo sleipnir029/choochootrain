@@ -236,6 +236,10 @@ data/http_cache/
 logs/*
 !logs/.gitkeep
 
+# PRX Predictor — saved posterior traces (regenerable; re-trained weekly). Keep the dir.
+models/saved/*.nc
+!models/saved/.gitkeep
+
 # PRX Predictor — marimo notebook artifacts
 .marimo/
 notebooks/__pycache__/

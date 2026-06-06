@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T4 — Training data builder (`models/training_data.py`): point-in-time per-map features, 3197 rows (= competitive maps), 0 NaN, target balance 0.505.
-**Next task:** P3.T5 — Fit Bambi logistic regression (`models/bayes_logistic.py`, `models/saved/bayes_logistic.nc`).
+**Last completed task:** P3.T5 — Bambi logistic fit (`models/bayes_logistic.py`): converged max r̂=1.0000, 0 divergences; `elo_diff` dominant (0.28). Numba backend (local g++ broken).
+**Next task:** P3.T6 — Score-state empirical lookup (`models/score_state.py`).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,23 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T5 — Fit Bambi logistic regression
+
+**Done:** Added `models/bayes_logistic.py` — hierarchical Bernoulli logistic via Bambi: `team1_won ~ scale(elo_diff) + scale(map_elo_diff) + team1_starts_atk_or_def + scale(recent_form_team1/2) + scale(h2h_team1_win_rate) + C(tier) + (1|patch_id)`. Trains on maps ≤ 2025-03-02 (Bangkok end), 1381 rows; saves posterior to `models/saved/bayes_logistic.nc` (gitignored, regenerable) + arviz summary to `logs/bayes_logistic_fit.txt`. `build_model(train_df)` is reusable by P3.T7. Added `tests/test_bayes_logistic.py` (2 tests, `importorskip` — skipped in CI). Model spec + toolchain workaround in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** **PyTensor's C backend can't link on this box** (msys64 g++ → `ld returned 116`), blocking PyMC; pure-Python (`cxx=`) was far too slow. Fixed by compiling via the **numba/LLVM backend** (`PYTENSOR_FLAGS=mode=NUMBA,cxx=`, set in-module before importing bambi; numba already in env) → full 4-chain fit in ~1 min. `map_elo_diff` (r=0.89 with `elo_diff`) is absorbed → coef ≈ 0; `elo_diff` carries team strength (0.28). Slight defense-start edge (−0.16). Patch σ ≈ 0.10 (patches barely differ).
+
+**Verification:** Live fit `python -m models.bayes_logistic --db data/prx.db` → **max r̂ = 1.0000, 0 divergences (PASS, threshold 1.05)**; `elo_diff` 0.28 (94% HDI [0.08, 0.48]). `pytest tests/test_bayes_logistic.py -q` → 2 passed (split cutoff, model constructs). Full suite **74 passed**.
+
+**Files touched:**
+- `models/bayes_logistic.py` (created)
+- `tests/test_bayes_logistic.py` (created)
+- `models/saved/.gitkeep` (created), `.gitignore` (modified — ignore `models/saved/*.nc`)
+- `docs/DEVIATIONS.md` (modified — model spec + numba workaround)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-5: bambi logistic fit (numba backend)`
 
 ### 2026-06-06 — P3.T4 — Training data builder for Bayesian regression
 

@@ -57,6 +57,33 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Bayesian logistic: model spec, numba backend workaround, .nc not committed
+
+**Phase / Task:** P3.T5
+
+**Spec said:**
+TASKS P3.T5: fit a Bambi formula model with the P3.T4 features; train through end of Masters Bangkok 2025, hold out the rest; save posterior to `models/saved/bayes_logistic.nc`. Done when converges (r_hat < 1.05 all params), summary logged. CLAUDE.md tech stack: Bambi (raw PyMC only if needed).
+
+**What was actually done:**
+`models/bayes_logistic.py` fits `team1_won ~ scale(elo_diff) + scale(map_elo_diff) + team1_starts_atk_or_def + scale(recent_form_team1) + scale(recent_form_team2) + scale(h2h_team1_win_rate) + C(tier) + (1|patch_id)`, Bernoulli/logit, train cutoff `2025-03-02` (Bangkok end). Choices:
+- continuous predictors standardized with the **stateful `scale()`** transform (prediction reapplies the train mean/sd automatically);
+- **`tier` as a fixed categorical** (only 4 levels — too few to estimate a random-effect variance);
+- **`(1|patch_id)` random intercept** for partial pooling across patches (SPEC §6.1 hierarchical intent);
+- both `elo_diff` and `map_elo_diff` kept despite r=0.89 collinearity — converged cleanly (NUTS handles it; `map_elo_diff`'s signal is absorbed by `elo_diff`, coef ≈ 0).
+
+**Toolchain workaround (material to running the fit):**
+This machine's PyTensor **C backend cannot link** (`C:\msys64\ucrt64\bin\g++.EXE` → `collect2: ld returned 116`), which blocks PyMC sampling. The pure-Python backend (`cxx=`) works but is far too slow (a tiny 1-chain fit didn't finish in minutes). Fix: compile via the **numba/LLVM backend** — `models/bayes_logistic.py` sets `os.environ.setdefault("PYTENSOR_FLAGS", "mode=NUMBA,cxx=")` before importing bambi. Full 4-chain × (1000+1000) fit then runs in ~1 min. numba 0.65.1 is already in the env (no new dependency installed). Overridable via `PYTENSOR_FLAGS` (e.g. a working C toolchain in the Phase 8 Linux image).
+
+**`.nc` not committed:** the posterior trace is a regenerable artifact (re-trained weekly per ARCHITECTURE §5.2), so `models/saved/*.nc` is gitignored (dir kept via `.gitkeep`); rebuild with `python -m models.bayes_logistic`. ARCHITECTURE §5.1 says the API loads it at startup — Phase 6/8 must ensure it's generated into the image/volume, not pulled from git.
+
+**Result:** max r_hat = 1.0000, 0 divergences (PASS). `elo_diff` coef 0.28 (94% HDI [0.08, 0.48], dominant); patch σ ≈ 0.10.
+
+**Impact:** P3.T7 reconstructs the model via `build_model(train_df)` + the saved trace; it inherits the numba flag by importing this module first. bambi/pymc deliberately **not** added to CI (heavy; no test samples — `test_bayes_logistic.py` uses `importorskip`).
+
+**Rahat approval:** N/A (model-spec + local-toolchain workaround within the approved Bambi approach; no stack/dep change).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Training data: point-in-time replay; row count = competitive maps (3197)
 
 **Phase / Task:** P3.T4

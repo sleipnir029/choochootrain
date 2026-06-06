@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from api.deps import db_path
-from api.routes import events, matches, players, predict, teams
+from api.routes import events, home, matches, players, predict, teams
 
 logger = structlog.get_logger(__name__)
 
@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for module in (predict, teams, players, events, matches):
+for module in (home, predict, teams, players, events, matches):
     app.include_router(module.router)
 
 
@@ -55,12 +55,26 @@ def health():
     return {"status": "ok", "db": db_path()}
 
 
-# Serve the built React dashboard from / (P6.T10), if it has been built. Mounted
-# last so it only catches paths the /api/* routes (and /docs) didn't. ``html=True``
-# serves index.html for /. DASHBOARD_DIST overrides the location (set in Docker).
+# Serve the built React dashboard (P6.T10), if built. Registered last so /api/*
+# and /docs win. Hashed assets are served from /assets; everything else falls back
+# to index.html so client-side routes (/match/:id, /player/:id) work on refresh /
+# direct load. DASHBOARD_DIST overrides the location (set in Docker).
 _DIST = Path(os.environ.get("DASHBOARD_DIST")
              or Path(__file__).resolve().parent.parent / "dashboard" / "dist")
 if _DIST.is_dir():
-    app.mount("/", StaticFiles(directory=str(_DIST), html=True), name="dashboard")
+    from fastapi import HTTPException
+    from fastapi.responses import FileResponse
+
+    app.mount("/assets", StaticFiles(directory=str(_DIST / "assets")), name="assets")
+    _INDEX = _DIST / "index.html"
+
+    @app.get("/{full_path:path}")
+    def spa(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="not found")
+        candidate = _DIST / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)          # favicon.svg, etc.
+        return FileResponse(_INDEX)                  # SPA fallback
 else:
     logger.info("dashboard_not_built", expected=str(_DIST))

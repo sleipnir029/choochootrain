@@ -6,26 +6,20 @@ by the team the player was on at the time (``map_player_stats.team_id_at_match``
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.deps import get_conn
+from api.deps import db_path, get_conn
 
 router = APIRouter()
 
 
 @router.get("/api/players/{player_id}")
 def get_player(player_id: int, conn=Depends(get_conn)):
-    """Player profile + current team (if known)."""
-    p = conn.execute(
-        """
-        SELECT p.player_id, p.handle, p.real_name, p.country,
-               p.current_team_id, t.name AS current_team_name, t.tag AS current_team_tag
-        FROM players p LEFT JOIN teams t ON t.team_id = p.current_team_id
-        WHERE p.player_id = ?
-        """,
-        (player_id,),
-    ).fetchone()
-    if p is None:
+    """Full player view: profile + skill percentile + per-stint stats + exp-vs-actual trend."""
+    from api.compute import player_view
+
+    view = player_view(conn, db_path(), player_id)
+    if view is None:
         raise HTTPException(status_code=404, detail=f"player {player_id} not found")
-    return dict(p)
+    return view
 
 
 @router.get("/api/players/{player_id}/stats")

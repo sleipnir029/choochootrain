@@ -70,13 +70,14 @@ def _pre_match_ingested(conn, match_id: int):
     if not maps:
         raise HTTPException(status_code=404, detail=f"match {match_id} has no ingested maps")
 
-    map_predictions, probs, top_factors = [], [], []
+    map_predictions, probs, his, top_factors = [], [], [], []
     for mp in maps:
         try:
             d = predict_map_win_prob_detailed(match_id, mp["map_index"], db_path=db_path())
         except ValueError:
             continue  # showmatch / missing feature row
         probs.append(d["team1_win_prob"])
+        his.append(d["hdi"])
         if not top_factors:
             top_factors = d["top_factors"]
         map_predictions.append({
@@ -87,6 +88,9 @@ def _pre_match_ingested(conn, match_id: int):
         })
 
     p_mean = sum(probs) / len(probs) if probs else 0.5
+    # series-level HDI = mean of the per-map HDIs (a rough band for the narrative).
+    hdi = ([round(sum(h[0] for h in his) / len(his), 4),
+            round(sum(h[1] for h in his) / len(his), 4)] if his else None)
     p_series = _series_win_prob(p_mean, m["format"])
     return {
         "mode": "ingested",
@@ -96,6 +100,7 @@ def _pre_match_ingested(conn, match_id: int):
         "series_format": m["format"],
         "series_win_prob": {"team1": round(p_series, 4), "team2": round(1 - p_series, 4)},
         "team1_win_prob": round(p_mean, 4),
+        "team1_win_prob_hdi": hdi,
         "map_predictions": map_predictions,
         "top_factors": top_factors,
     }
@@ -120,35 +125,26 @@ def _pre_match_upcoming(conn, team1_id: int, team2_id: int, event_id):
     }
 
 
-@router.get("/api/predict/replay")
-def replay(match_id: int, conn=Depends(get_conn)):
-    """Round-by-round pre-round probability trace for a completed match."""
-    from models.predict import combine_prior_and_state, predict_map_win_prob, score_state_prob
+def build_replay(conn, match_id, team1_id, db_path_):
+    """Round-by-round pre-round prob trace per map (team1 perspective).
 
-    m = conn.execute(
-        "SELECT team1_id FROM matches WHERE match_id = ?", (match_id,)
-    ).fetchone()
-    if m is None:
-        raise HTTPException(status_code=404, detail=f"match {match_id} not in warehouse")
-    team1_id = m["team1_id"]
+    The pre-match prior is identical for every round of a map (a Bambi
+    posterior-predictive), so it's computed ONCE per map and the cheap score-state
+    combine is applied per round. Reused by the match-view endpoint.
+    """
+    from models.predict import combine_prior_and_state, predict_map_win_prob, score_state_prob
 
     maps = conn.execute(
         "SELECT map_id, map_index, map_name FROM maps WHERE match_id = ? ORDER BY map_index",
         (match_id,),
     ).fetchall()
-    if not maps:
-        raise HTTPException(status_code=404, detail=f"match {match_id} has no ingested maps")
 
     out_maps = []
     for mp in maps:
-        # The pre-match prior is identical for every round of a map (a Bambi
-        # posterior-predictive); compute it ONCE, then apply the cheap score-state
-        # combine per round. Avoids re-running the model ~once per round.
         try:
-            prior = predict_map_win_prob(match_id, mp["map_index"], db_path=db_path())
+            prior = predict_map_win_prob(match_id, mp["map_index"], db_path=db_path_)
         except ValueError:
             prior = None
-
         rounds = conn.execute(
             "SELECT round_number, half, team1_side, winner_id FROM rounds "
             "WHERE map_id = ? ORDER BY round_number",
@@ -162,7 +158,7 @@ def replay(match_id: int, conn=Depends(get_conn)):
                 p_state = score_state_prob({
                     "half": rd["half"], "team1_score": t1, "team2_score": t2,
                     "team1_side": rd["team1_side"],
-                }, db_path=db_path())
+                }, db_path=db_path_)
                 p = combine_prior_and_state(prior, p_state)
             trace.append({
                 "round": rd["round_number"],
@@ -175,8 +171,21 @@ def replay(match_id: int, conn=Depends(get_conn)):
             else:
                 t2 += 1
         out_maps.append({"map_index": mp["map_index"], "map_name": mp["map_name"], "rounds": trace})
+    return out_maps
 
-    return {"match_id": match_id, "maps": out_maps}
+
+@router.get("/api/predict/replay")
+def replay(match_id: int, conn=Depends(get_conn)):
+    """Round-by-round pre-round probability trace for a completed match."""
+    m = conn.execute(
+        "SELECT team1_id FROM matches WHERE match_id = ?", (match_id,)
+    ).fetchone()
+    if m is None:
+        raise HTTPException(status_code=404, detail=f"match {match_id} not in warehouse")
+    maps = build_replay(conn, match_id, m["team1_id"], db_path())
+    if not maps:
+        raise HTTPException(status_code=404, detail=f"match {match_id} has no ingested maps")
+    return {"match_id": match_id, "maps": maps}
 
 
 @router.get("/api/predict/live")

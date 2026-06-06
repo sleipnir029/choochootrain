@@ -150,3 +150,47 @@ def test_replay_trace(client):
     rounds = body["maps"][0]["rounds"]
     assert rounds and rounds[0]["round"] == 1
     assert all(0.0 < r["pre_round_prob_team1"] < 1.0 for r in rounds)
+
+
+# --- P6 revision: view-shaped insight endpoints -----------------------------
+
+def _prx_player_id():
+    conn = sqlite3.connect(_DB)
+    row = conn.execute("SELECT player_id FROM players WHERE handle = 'f0rsakeN'").fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def test_player_view(client):
+    # Light: player_view needs pandas/elo, not bambi.
+    pid = _prx_player_id()
+    body = client.get(f"/api/players/{pid}").json()
+    assert body["handle"] == "f0rsakeN"
+    assert body["skill"] and 0 <= body["skill"]["percentile"] <= 100
+    assert body["stints"]
+    # recent_form rows carry expected vs actual + a delta.
+    if body["recent_form"]:
+        assert "delta_acs" in body["recent_form"][0]
+
+
+@needs_model
+def test_home(client):
+    pytest.importorskip("bambi")
+    body = client.get("/api/home").json()
+    assert body["prx"]["rank"]["rank"] >= 1
+    assert body["prx"]["roster"]
+    assert body["hero"] is not None
+    # recent results carry the model-vs-result verdict.
+    assert all("model_correct" in r for r in body["recent"])
+
+
+@needs_model
+def test_match_view_insight(client):
+    pytest.importorskip("bambi")
+    mid = _prx_match_id()
+    body = client.get(f"/api/matches/{mid}").json()
+    assert body["prematch_insight"]["headline"]
+    assert isinstance(body["prematch_insight"]["points"], list)
+    if body["completed"]:
+        assert body["postmatch_insight"]["headline"]
+        assert body["expected_stats"]

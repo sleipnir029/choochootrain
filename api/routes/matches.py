@@ -6,9 +6,9 @@ Best-effort: if vlrggapi is unreachable (e.g. the container isn't running), retu
 an empty list with ``source: "unavailable"`` rather than erroring.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
-from api.deps import get_conn
+from api.deps import db_path, get_conn
 
 router = APIRouter()
 
@@ -41,3 +41,14 @@ async def upcoming_matches(team_id: int, conn=Depends(get_conn)):
     team_name = row["name"] if row else None
     matches, source = await fetch_upcoming(team_name)
     return {"team_id": team_id, "team_name": team_name, "matches": matches, "source": source}
+
+
+@router.get("/api/matches/{match_id}")
+def match_detail(match_id: int, conn=Depends(get_conn)):
+    """Full match view: prediction + narrative + (if completed) replay + expected-vs-actual."""
+    from api.compute import match_view
+
+    view = match_view(conn, match_id, db_path())
+    if view is None:
+        raise HTTPException(status_code=404, detail=f"match {match_id} not in warehouse")
+    return view

@@ -29,8 +29,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Last completed task:** Phase 3 revisit (`notebooks/04_player_skill_lift.py`): **player skill DOES lift map prediction** — elo+skill 0.589 acc (vs elo 0.580) broad; skill-alone 0.585 on elite Masters (vs elo 0.542). Recommend integrating `skill_diff` into the model (Rahat go/no-go pending).
-**Next task:** Rahat decision — (a) integrate `skill_diff` into the Bambi model + re-validate, then (b) write Phase 3 summary (T9) + Phase 4 summary (T5).
+**Phase:** Phases 3 (`v0.1.0-phase-3`) + 4 (`v0.1.0-phase-4`) complete — `skill_diff` integrated into the pre-match model (broad holdout 0.583 acc, beats Elo-sign 0.580). Awaiting Rahat go-ahead for Phase 5 (live update logic). Do not auto-start.
+**Last completed task:** Integrated player-skill feature + wrote Phase 3 (T9) and Phase 4 (T5) summaries.
+**Next task:** P5.T1 — Live score poller (`scheduler/jobs/live_poll.py`), only after Rahat's go-ahead.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -98,10 +99,32 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Next phase prep:** Phase 3 (modeling) can build on a clean, patch-tagged, FK-consistent warehouse. Use `players_on_team_at()` for roster-aware features; exclude `series_name LIKE 'Showmatch%'` from competitive aggregates.
 
 ### Phase 3 — Statistical modeling
-*Locked until Phase 2 complete*
+
+**Built:** `models/elo.py` (margin-of-victory Elo update), `models/elo_replay.py` + `scripts/build_elo.py` (→ `elo_ratings`), `models/elo_map_offsets.py` (→ `elo_map_offsets`), `models/training_data.py` (point-in-time per-map features incl. `skill_diff`), `models/bayes_logistic.py` (hierarchical Bambi logistic; numba backend — local g++ broken), `models/score_state.py` (→ `score_state_lookup`), `models/predict.py` (pre-match + live log-odds pooling). Notebooks `02_model_validation.py` (holdout) + `04_player_skill_lift.py` (the revisit).
+
+**What works:** Elo replay ranks teams plausibly (PRX/NRG/EDG/T1/SEN top ~15); map offsets pass eye test (PRX Sunset +63); score-state lookup sane (up 9-3 at half on D → 0.92); Bambi converges (r̂ 1.0); `predict_map_win_prob` returns sensible pre-match + live probabilities.
+
+**What's pending / deferred:** Map-level pre-match prediction has a **low intrinsic ceiling** — the broad holdout reaches **0.583 acc / Brier 0.240**, finally **above** the Elo-sign baseline (0.580) once `skill_diff` was added, but elite Masters maps stay ~coinflip (0.534). SPEC §6.3's 65-75% target is **not achievable** here (Bayes-optimal under Elo ~0.587; DEVIATIONS 2026-06-06).
+
+**Numbers:** holdout acc 0.583 (Elo-sign 0.580), Brier 0.240; `skill_diff` coef 0.214 (HDI [0.093,0.333]); score_state 408 states / 135k obs; Phase-0 round baseline 55.4%.
+
+**Surprises:** every team-level feature beyond Elo was dead weight (form/H2H/side/patch AUC ≈ 0.50); the **only** feature to add real signal was team-aggregated **player skill** (`skill_diff`, corr 0.49 w/ Elo). PyTensor's C backend can't link locally → numba backend. Match dates, economy %, etc. all surfaced earlier.
+
+**Next phase prep:** Phase 5 (live) hooks `models.predict.predict_map_win_prob(..., live_state=...)`; the score-state table + log-odds pooling are ready.
 
 ### Phase 4 — Player skill layer
-*Locked*
+
+**Built:** `models/player_skill.py` (pure TrueSkill update wrapper), `scripts/build_player_skill.py` (chronological replay → `player_skill`, + `replay_skill_diffs` point-in-time team-skill feature), `models/expected_stats.py` (expected ACS/K/D/A). Notebooks `03_player_skill_validation.py` + `04_player_skill_lift.py`. `trueskill==0.4.5` added to the stack.
+
+**What works:** 477 players rated (439 with ≥10 maps); top conservative ratings are recognizable stars (aspas, Derke, Alfajer, zekken, t3xture). Expected stats hit the ±30 done-when at match level (PRX 666493 MAE(ACS) 24.9; Toronto 2025 27.2). The team-skill feature **lifts map prediction above the Elo ceiling** (integrated into Phase 3's model).
+
+**What's pending / deferred:** Per-(agent, map) skill cells (Layer 5 full granularity) and Layer-6 player-movement adjustment are deferred (post-v1 / when a consumer needs them). Expected stats are match-level only (per-map ACS is unpredictable, ~43 MAE).
+
+**Numbers:** `player_skill` 477 rows; expected ACS MAE 24.9–27.2; `skill_diff` univariate AUC 0.61 (strongest single feature), model coef 0.214.
+
+**Surprises:** per-map ACS is irreducibly noisy (~43 MAE) — only match-level averaging meets ±30. Player skill turned out to be the key feature that beat the Phase-3 Elo ceiling (firepower separates evenly-matched elite teams).
+
+**Next phase prep:** ratings + `replay_skill_diffs` are reusable; the "expected vs actual" panel (Phase 6) consumes `expected_stats.predict_expected_stats`.
 
 ### Phase 5 — Live update logic
 *Locked*
@@ -120,6 +143,20 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — Integration + Phase 3 (T9) & Phase 4 (T5) summaries
+
+**Done:** Integrated `skill_diff` into the pre-match model (commit `184455b`: `models/training_data.py` adds the column, `models/bayes_logistic.py` formula + refit), re-validated (`notebooks/02_model_validation.py`), and wrote the Phase 3 and Phase 4 summaries above. Tags `v0.1.0-phase-3` + `v0.1.0-phase-4`.
+
+**Result:** refit converged (r̂ 1.0, 0 div); `scale(skill_diff)` coef **0.214** (HDI [0.093,0.333]). Broad post-cutoff holdout **0.583 acc / 0.240 Brier** — first time the model beats the Elo-sign baseline (0.580); RegionalLeague 0.602; elite Masters 0.534 (~coinflip, n=118). `skill_diff` is the strongest single feature (AUC 0.61).
+
+**Verification:** `python -m models.bayes_logistic` (refit, PASS); `python notebooks/02_model_validation.py` (numbers above); `python -m models.predict` (sane); full suite **106 passed**.
+
+**Files touched:**
+- `models/training_data.py`, `models/bayes_logistic.py`, `notebooks/02_model_validation.py`, `tests/test_training_data.py`, `tests/test_bayes_logistic.py`, `docs/DEVIATIONS.md` (integration commit `184455b`)
+- `docs/PROGRESS.md` (Phase 3 + Phase 4 summaries, current state, this entry)
+
+**Commit:** `<pending>` — `docs: phase 3 + phase 4 summaries` (+ tags `v0.1.0-phase-3`, `v0.1.0-phase-4`)
 
 ### 2026-06-06 — Phase 3 revisit — does player skill lift map prediction?
 

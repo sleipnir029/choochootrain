@@ -158,6 +158,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — P6.T4–T9 — Dashboard UI (shell + 4 panels + auto-detect)
+
+**Done:** Built the dashboard UI. **T4 shell** (`App.tsx`, dark theme in `index.css`, TanStack Query in `main.tsx`): sticky top bar with a live/no-live mode pill + manual switcher (Live/Pre-match/Player/Replay) + a contextual ID input. Typed API client `src/lib/api.ts` (axios, mirrors the §3 contract). **T5 `PreMatchPanel`**: series win-prob bar (`WinProbBar`), per-map probs, top-factor breakdown with HDI; works in both ingested + upcoming modes. **T6 `LivePanel`**: `useQuery` with `refetchInterval: 30_000`, scoreline + current-map prob + a Recharts probability sparkline; handles `no_live`. **T7 `PlayerPanel`**: per-team-**stint** table (D2 — no cross-team pooling) + a per-stint ACS bar chart. **T8 `ReplayPanel`**: round-by-round probability line chart per map. **T9 auto-detect (D3)**: on mount queries `/api/predict/live` → Live panel if live, else Pre-match for PRX's next matchup (default 624-vs-188 until schedule/veto known); manual switcher always overrides.
+
+**Learned or surprised:** Recharts' Tooltip `formatter` types its value as the wide `ValueType` (not `number`) → coerce with `Number(v)`. Bundle is 641 KB (Recharts-dominated); advisory `>500 kB` warning only — acceptable for a LAN dashboard (code-splitting is YAGNI for v1). D3's "PRX next match" can't be predicted without both team IDs (vlrggapi upcoming gives names, not IDs), so the no-live default uses a representative 624-vs-188 upcoming matchup that renders real model output; a match-ID input allows any ingested match.
+
+**Verification:** `npm run build` (tsc strict typecheck + vite bundle) passes clean. Visual/data rendering is manual per ARCHITECTURE §9 (no dashboard e2e in v1) — exercised end-to-end against the served bundle in T10.
+
+**Files touched:**
+- `dashboard/src/lib/api.ts`, `dashboard/src/main.tsx`, `dashboard/src/App.tsx`, `dashboard/src/index.css` (created/rewritten)
+- `dashboard/src/components/{WinProbBar,PreMatchPanel,LivePanel,PlayerPanel,ReplayPanel}.tsx` (created)
+- removed dead scaffold `src/App.css`, `src/assets/react.svg`
+- `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-6.task-4-9: dashboard ui (shell + panels + auto-detect)`
+
 ### 2026-06-06 — P6.T3 — React + Vite dashboard scaffold
 
 **Done:** Rahat gave the frontend go-ahead. Scaffolded `dashboard/` via `create-vite` (react-ts), installed `recharts`, `axios`, `@tanstack/react-query` (ARCHITECTURE §7.2). Configured `vite.config.ts`: `base: './'` (so the built bundle works when FastAPI serves it from `/` in T10) + a dev proxy `/api → http://localhost:8000` (so `npm run dev` hits the real API; overridable via `VITE_API_URL`).

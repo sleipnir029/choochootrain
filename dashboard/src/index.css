@@ -1,111 +1,123 @@
+/* PRX Predictor dashboard — dark theme (P6.T4). */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-2: #1c2330;
+  --border: #2a3340;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --team1: #4ea1ff;
+  --team2: #ff6b6b;
+  --accent: #f5b14c;
+  --good: #3fb950;
+  color-scheme: dark;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
+  background: var(--bg);
+  color: var(--text);
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+a { color: var(--team1); }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar h1 { font-size: 16px; margin: 0; letter-spacing: 0.5px; }
+.topbar .spacer { flex: 1; }
+
+.mode-pill {
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.mode-pill.live { color: var(--bg); background: var(--good); border-color: var(--good); font-weight: 600; }
+
+.btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn:hover { border-color: var(--team1); }
+.btn.active { background: var(--team1); color: var(--bg); border-color: var(--team1); font-weight: 600; }
+
+.input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  width: 120px;
+  font-size: 13px;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
+.container { max-width: 980px; margin: 0 auto; padding: 24px 20px; }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 18px;
 }
+.panel h2 { margin: 0 0 4px; font-size: 18px; }
+.panel .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
+.teams-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.team-name { font-size: 20px; font-weight: 600; }
+.team-name.t1 { color: var(--team1); }
+.team-name.t2 { color: var(--team2); }
+
+/* Win-probability split bar */
+.probbar { display: flex; height: 30px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+.probbar .seg1 { background: var(--team1); }
+.probbar .seg2 { background: var(--team2); }
+.probbar .seg-label { display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--bg); }
+.hdi { color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+.maps-grid { display: grid; gap: 10px; margin-top: 12px; }
+.map-row { display: grid; grid-template-columns: 90px 1fr 56px; align-items: center; gap: 10px; }
+.map-row .mname { font-size: 13px; color: var(--muted); }
+.mini-bar { height: 14px; border-radius: 4px; background: var(--team2); overflow: hidden; }
+.mini-bar > div { height: 100%; background: var(--team1); }
+.map-row .mpct { font-size: 12px; text-align: right; color: var(--text); }
+
+.factors { margin-top: 16px; }
+.factor { display: grid; grid-template-columns: 150px 1fr 60px; align-items: center; gap: 10px; margin: 6px 0; font-size: 13px; }
+.factor .fbar { height: 10px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+.factor .fbar > div { height: 100%; }
+.factor .favors-team1 > div { background: var(--team1); }
+.factor .favors-team2 > div { background: var(--team2); }
+.factor .fav { font-size: 11px; color: var(--muted); text-align: right; }
+
+table.stints { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.stints th, table.stints td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+table.stints th { color: var(--muted); font-weight: 500; }
+table.stints tr:hover td { background: var(--panel-2); }
+
+.muted { color: var(--muted); }
+.error { color: var(--team2); }
+.loading { color: var(--muted); font-style: italic; }
+.kpi { font-size: 28px; font-weight: 700; }
+.scoreline { font-size: 22px; font-weight: 700; }
+.scoreline .t1 { color: var(--team1); }
+.scoreline .t2 { color: var(--team2); }

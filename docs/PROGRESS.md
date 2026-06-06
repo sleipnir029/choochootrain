@@ -29,9 +29,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Phase:** 5 in progress (live update logic). Phases 0–4 complete + tagged. Rahat gave go-ahead for Phase 5.
-**Last completed task:** P5.T4 — Multi-match priority (`select_match`): PRX > Champions > Masters > Regional > earliest, from live_score's `match_event`/`unix_timestamp`; 4 priority tests.
-**Next task:** P5.T5 — Phase 5 summary (`docs/PROGRESS.md`, tag `v0.1.0-phase-5`).
+**Phase:** 5 complete (`v0.1.0-phase-5`). Phases 0–5 done + tagged. Awaiting Rahat go-ahead for Phase 6 (FastAPI + React dashboard). Do not auto-start.
+**Last completed task:** P5.T5 — Phase 5 summary + tag `v0.1.0-phase-5`.
+**Next task:** P6.T1 — API contract draft (`docs/ARCHITECTURE.md`), only after Rahat's go-ahead. Note the Phase-6 dependency: an upcoming-match feature builder (un-played matches) for pre-match prediction.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -127,7 +127,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Next phase prep:** ratings + `replay_skill_diffs` are reusable; the "expected vs actual" panel (Phase 6) consumes `expected_stats.predict_expected_stats`.
 
 ### Phase 5 — Live update logic
-*Locked*
+
+**Built:** `scheduler/jobs/live_poll.py` — the live-match poller: `parse_live_segment` (live_score → state, handles "N/A"/strings), `select_match` (SPEC-D3 priority PRX > Champions > Masters > Regional > earliest, via `classify_tier`), `state_changed` + `on_change` callback (fires once per same-map change), `write_live_state` (singleton), `to_predict_live_state` + `make_prediction_callback` (re-predict → `live_predictions`), and an async `poll_once`/`run` IDLE-POLLING loop with a `--once` CLI. Tests: `tests/test_live_poll.py` (17).
+
+**What works:** polls `/v2/match?q=live_score` (`VlrClient(cache=False)`), tracks the highest-priority live match, writes the `live_state` singleton, logs + fires the callback exactly once per score change, and recomputes the map win-prob (`predict_map_win_prob` with a live_state) writing it to `live_predictions`. A callback failure is swallowed so the loop survives. Live `--once` smoke connected to the real endpoint (logged `no_live_match`); the prediction path is verified on a simulated ingested match.
+
+**What's pending / deferred:**
+- **Real (un-ingested) live-match prediction** needs the Phase-6 upcoming-match feature builder — `predict_map_win_prob` requires ingested map features, so an in-progress match's prediction no-ops (swallowed). Done-when met via an ingested-match simulation.
+- **Current-side inference** is best-effort (live_score doesn't expose it); **no hard tier-1/tier-2 exclusion** (live matches aren't in the curated registry).
+- **Scheduler registration** (APScheduler job, season cadence) is not wired yet — T1–T4 built the job logic; hooking it into the `prx-app` container is later scheduler/Phase-8 work. The poller runs standalone.
+
+**Numbers:** 17 live-poll tests; full suite 123 passed.
+
+**Surprises:** live_score `score1/score2` are *series* scores, not the round counts the score-state lookup needs (derived from `team{1,2}_round_{ct,t}`); VCT event names carry the "Champions Tour" brand (classification trap, handled); `match_event`/`match_series`/`unix_timestamp` are exposed in live_score (enabled tier ranking with no DB lookup).
+
+**Next phase prep:** Phase 6 API/dashboard reads `live_state` + `live_predictions`; the pre-match panel for an *upcoming* (unplayed) match needs the as-of-now feature builder (the recurring Phase-6 gap noted since P3.T7).
 
 ### Phase 6 — FastAPI + React dashboard
 *Locked*
@@ -143,6 +157,17 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P5.T5 — Phase 5 summary + tag
+
+**Done:** Wrote the Phase 5 summary (above) and updated Current state. Phase 5 (live update logic) is complete: poller → priority match selection → live_state + score-change callback → re-prediction → live_predictions. Tagging `v0.1.0-phase-5`.
+
+**Verification:** full suite **123 passed**; the live-poll job is exercised by 17 tests + a live `--once` smoke.
+
+**Files touched:**
+- `docs/PROGRESS.md` (Phase 5 summary + current state + this entry)
+
+**Commit:** `<pending>` — `phase-5.task-5: phase 5 summary` (+ tag `v0.1.0-phase-5`)
 
 ### 2026-06-06 — P5.T4 — Priority logic for multiple live matches
 

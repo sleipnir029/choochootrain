@@ -21,7 +21,8 @@ from collections import defaultdict
 from models.player_skill import new_rating, update_skill
 
 _STATS_SQL = """
-    SELECT mps.map_id, mps.player_id, mps.team_id_at_match, mps.acs, m.date_utc
+    SELECT mps.map_id, mps.player_id, mps.team_id_at_match, mps.acs,
+           m.date_utc, m.team1_id
     FROM map_player_stats mps
     JOIN maps mp ON mp.map_id = mps.map_id
     JOIN matches m ON m.match_id = mp.match_id
@@ -38,45 +39,83 @@ def _aggregate(players, ratings):
                       sum(r.sigma for r in rs) / len(rs))
 
 
+def _update_map_ratings(teams, ratings):
+    """Apply one map's TrueSkill update to `ratings` in place; return updated player_ids.
+
+    `teams`: {team_id: [(player_id, acs)]}. Each player's performance is their ACS
+    minus the opposing team's average ACS, vs the aggregate opposing rating. Uses
+    pre-map ratings for everyone (no within-map leakage).
+    """
+    (ta, pa), (tb, pb) = list(teams.items())
+    avg_a = sum(a for _, a in pa) / len(pa)
+    avg_b = sum(a for _, a in pb) / len(pb)
+    opp_for_a = _aggregate(pb, ratings)       # team A's opponent = team B
+    opp_for_b = _aggregate(pa, ratings)
+    updated = {}
+    for pid, acs in pa:
+        updated[pid] = update_skill(pid, None, None, acs - avg_b, opp_for_a,
+                                    current=ratings.get(pid, new_rating()))
+    for pid, acs in pb:
+        updated[pid] = update_skill(pid, None, None, acs - avg_a, opp_for_b,
+                                    current=ratings.get(pid, new_rating()))
+    ratings.update(updated)
+    return updated.keys()
+
+
+def _iter_maps(conn):
+    """Yield (map_id, team1_id, date, [(player_id, team_id, acs), ...]) per map, in order."""
+    cur_map, buf, date, t1 = None, [], None, None
+    for row in conn.execute(_STATS_SQL):
+        if row["map_id"] != cur_map:
+            if buf:
+                yield cur_map, t1, date, buf
+            cur_map, buf = row["map_id"], []
+            date, t1 = row["date_utc"][:10], row["team1_id"]
+        buf.append((row["player_id"], row["team_id_at_match"], row["acs"]))
+    if buf:
+        yield cur_map, t1, date, buf
+
+
 def replay(conn):
     """Return (ratings, last_date, maps_played) after the chronological replay."""
     ratings = {}            # player_id -> Rating
     last_date = {}          # player_id -> ISO date of last map
     maps_played = defaultdict(int)
-
-    def flush(rows, date):
-        teams = defaultdict(list)            # team_id -> [(player_id, acs)]
+    for _map_id, _t1, date, rows in _iter_maps(conn):
+        teams = defaultdict(list)
         for pid, tid, acs in rows:
             teams[tid].append((pid, acs))
         if len(teams) != 2:
-            return                            # need exactly two identifiable teams
-        (ta, pa), (tb, pb) = list(teams.items())
-        avg_a = sum(a for _, a in pa) / len(pa)
-        avg_b = sum(a for _, a in pb) / len(pb)
-        opp_for_a = _aggregate(pb, ratings)   # team A's opponent = team B
-        opp_for_b = _aggregate(pa, ratings)
-        updated = {}
-        for pid, acs in pa:
-            updated[pid] = update_skill(pid, None, None, acs - avg_b, opp_for_a,
-                                        current=ratings.get(pid, new_rating()))
-        for pid, acs in pb:
-            updated[pid] = update_skill(pid, None, None, acs - avg_a, opp_for_b,
-                                        current=ratings.get(pid, new_rating()))
-        for pid, r in updated.items():
-            ratings[pid] = r
+            continue
+        for pid in _update_map_ratings(teams, ratings):
             last_date[pid] = date
             maps_played[pid] += 1
-
-    cur_map, buf, date = None, [], None
-    for row in conn.execute(_STATS_SQL):
-        if row["map_id"] != cur_map:
-            if buf:
-                flush(buf, date)
-            cur_map, buf, date = row["map_id"], [], row["date_utc"][:10]
-        buf.append((row["player_id"], row["team_id_at_match"], row["acs"]))
-    if buf:
-        flush(buf, date)
     return ratings, last_date, maps_played
+
+
+def replay_skill_diffs(conn):
+    """Return {map_id: skill_diff} where skill_diff = mean mu(team1) - mean mu(team2).
+
+    Point-in-time team-skill feature for the map-prediction lift experiment: the
+    diff uses **pre-map** ratings (oriented to the match's team1), then the map
+    advances the ratings. No leakage.
+    """
+    ratings = {}
+    diffs = {}
+
+    def _team_mu(players):
+        return sum(ratings.get(pid, new_rating()).mu for pid, _ in players) / len(players)
+
+    for map_id, t1, _date, rows in _iter_maps(conn):
+        teams = defaultdict(list)
+        for pid, tid, acs in rows:
+            teams[tid].append((pid, acs))
+        if len(teams) != 2 or t1 not in teams:
+            continue
+        t2 = next(tid for tid in teams if tid != t1)
+        diffs[map_id] = _team_mu(teams[t1]) - _team_mu(teams[t2])  # pre-map
+        _update_map_ratings(teams, ratings)
+    return diffs
 
 
 def build(conn):

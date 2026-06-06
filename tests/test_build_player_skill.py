@@ -4,7 +4,7 @@ import sqlite3
 
 from ingestion.schema import init_db
 from models.player_skill import DEFAULT_MU
-from scripts.build_player_skill import build, replay
+from scripts.build_player_skill import build, replay, replay_skill_diffs
 
 
 def _conn(tmp_path):
@@ -89,6 +89,19 @@ def test_showmatch_excluded(tmp_path):
     _map(conn, "2024-01-02", [(9, 250)], [(8, 150)], series="Showmatch: Showmatch")
     ratings, _last, _maps = replay(conn)
     assert set(ratings) == {1, 3}   # showmatch players 9/8 not rated
+
+
+def test_skill_diffs_point_in_time_and_sign(tmp_path):
+    conn = _conn(tmp_path)
+    # team 10 (= match team1) consistently out-frags team 20 across 7 maps.
+    for d in range(1, 8):
+        _map(conn, f"2024-02-{d:02d}", [(1, 250), (2, 240)], [(3, 150), (4, 140)])
+    diffs = replay_skill_diffs(conn)
+    chrono = [diffs[k] for k in sorted(diffs)]  # map_id ascending = chronological
+    assert len(chrono) == 7
+    assert abs(chrono[0]) < 1e-9     # first map: both lineups at default mu -> 0 (pre-map)
+    assert chrono[-1] > 0            # team1 lineup proven stronger -> positive diff
+    assert chrono[-1] > chrono[0]
 
 
 def test_idempotent_rebuild(tmp_path):

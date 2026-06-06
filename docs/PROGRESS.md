@@ -29,8 +29,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Last completed task:** P4.T4 — Player-skill validation (`notebooks/03_player_skill_validation.py`): Masters Toronto 2025 expected-vs-actual — ACS MAE 27.2 (≤30), K/D/A MAE 2.6/2.2/1.8.
-**Next task:** P4.T5 — Phase 4 summary (`docs/PROGRESS.md`, tag v0.1.0-phase-4) — then the held-open **Phase 3 revisit** (does team-aggregated player skill lift map prediction?).
+**Last completed task:** Phase 3 revisit (`notebooks/04_player_skill_lift.py`): **player skill DOES lift map prediction** — elo+skill 0.589 acc (vs elo 0.580) broad; skill-alone 0.585 on elite Masters (vs elo 0.542). Recommend integrating `skill_diff` into the model (Rahat go/no-go pending).
+**Next task:** Rahat decision — (a) integrate `skill_diff` into the Bambi model + re-validate, then (b) write Phase 3 summary (T9) + Phase 4 summary (T5).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -120,6 +120,24 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — Phase 3 revisit — does player skill lift map prediction?
+
+**Done:** Planned-then-executed. Added `replay_skill_diffs(conn)` to `scripts/build_player_skill.py` (point-in-time per-map `mean μ(team1) − mean μ(team2)`, reusing a refactored `_iter_maps`/`_update_map_ratings` shared with `replay`). Added `notebooks/04_player_skill_lift.py` comparing elo / skill / elo+skill logistic models on the holdout. Added a `replay_skill_diffs` unit test. Conclusion in DEVIATIONS 2026-06-06.
+
+**Numbers:** `corr(skill_diff, elo_diff)=0.49` (distinct info). Broad post-cutoff: **elo+skill acc 0.589 / AUC 0.622 / Brier 0.238** vs elo-only 0.580 / 0.609 / 0.241. Elite Masters: **skill-alone acc 0.585 / AUC 0.603** vs elo 0.542 / 0.546 (~+4pt). Player skill is the **first feature to add real signal beyond Elo** (every Layer-3 feature was dead).
+
+**Learned or surprised:** The P3.T8 ceiling holds for *team-level* features but player-level skill lifts it — modestly broad, notably on elite events (firepower separates evenly-matched top teams). Lift is real but small in absolute terms; not a route to the original 65-75% target.
+
+**Verification:** `python notebooks/04_player_skill_lift.py` headless prints the comparison; `pytest tests/test_build_player_skill.py` → 6 passed (incl. point-in-time skill-diff sign); full suite **106 passed**.
+
+**Files touched:**
+- `scripts/build_player_skill.py` (modified — `replay_skill_diffs` + `_iter_maps`/`_update_map_ratings` refactor)
+- `notebooks/04_player_skill_lift.py` (created)
+- `tests/test_build_player_skill.py` (modified — skill-diff test)
+- `docs/DEVIATIONS.md` (modified — revises P3.T8 ceiling), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-3.revisit: player-skill lift on map prediction`
 
 ### 2026-06-06 — P4.T4 — Player-skill validation
 

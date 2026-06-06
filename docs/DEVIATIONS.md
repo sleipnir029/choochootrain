@@ -57,6 +57,25 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Player skill DOES lift map prediction beyond the Elo ceiling (revises P3.T8)
+
+**Phase / Task:** Phase 3 revisit (Rahat-directed: Phase 4 before finalizing Phase 3)
+
+**Context:**
+P3.T8 (DEVIATIONS 2026-06-06) concluded map prediction was stuck at a ~57% Elo ceiling because features beyond team Elo added no signal. Rahat deferred the Phase 3 summary to build Phase 4 (player skill) and test whether a team-aggregated player-skill feature beats that ceiling.
+
+**What was found (`notebooks/04_player_skill_lift.py` + `replay_skill_diffs`):**
+A point-in-time team-skill feature (`skill_diff` = mean TrueSkill μ of team1's lineup − team2's, pre-map) **does** add signal — unlike every Layer-3 feature:
+- `corr(skill_diff, elo_diff) = 0.49` (distinct info, not redundant), `corr(skill_diff, won) = 0.17 ≈ elo`.
+- **elo+skill** beats elo-only on the broad post-cutoff holdout: acc 0.580 → **0.589**, AUC 0.609 → **0.622**, Brier 0.241 → **0.238**.
+- **Elite Masters holdout:** skill *alone* = acc **0.585** / AUC **0.603** vs Elo 0.542 / 0.546 (~+4pt) — individual firepower separates top, evenly-matched teams where team Elo is weakest.
+
+**Impact:** Partially revises the P3.T8 "hard ceiling" finding — the ceiling holds for *team-level* features, but *player-level* skill lifts it modestly (broad) / notably (elite). Recommendation: integrate `skill_diff` into the pre-match model (add to `models/training_data.py` + refit `models/bayes_logistic.py`, re-run P3.T8 validation) — pending Rahat's go-ahead, as it modifies committed Phase 3 artifacts. The lift is modest in absolute terms (map-level prediction remains hard), not a path to the original 65-75% target.
+
+**Rahat approval:** experiment approved (plan); model-integration decision pending.
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Expected stats: match-level recent-form baseline; map term dropped; ±30 is the floor
 
 **Phase / Task:** P4.T3

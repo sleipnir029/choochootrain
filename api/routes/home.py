@@ -28,9 +28,14 @@ def _live_hero(conn):
     last = conn.execute(
         "SELECT team1_win_prob FROM live_predictions WHERE match_id = ? AND map_index = ? "
         "ORDER BY computed_at DESC LIMIT 1", (state["match_id"], mi)).fetchone()
-    payload = {**dict(state), "team1_win_prob_current_map": last["team1_win_prob"] if last else None}
+    cur = last["team1_win_prob"] if last else None
+    payload = {**dict(state), "team1_win_prob_current_map": cur}
+    prx_p = None if cur is None else (cur if side == "team1" else 1 - cur)
+    opp_id = (m["team2_id"] if side == "team1" else m["team1_id"]) if m else None
+    opp = conn.execute("SELECT name FROM teams WHERE team_id = ?", (opp_id,)).fetchone() if opp_id else None
     return {"kind": "live", "match_id": state["match_id"], "current_map": state["current_map"],
-            "team1_win_prob_current_map": payload["team1_win_prob_current_map"],
+            "prx_win_prob": round(prx_p, 4) if prx_p is not None else None,
+            "opponent": opp["name"] if opp else None,
             "insight": insight.live_insight(payload, side or "team1")}
 
 

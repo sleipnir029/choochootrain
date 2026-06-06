@@ -29,7 +29,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Next task:** P4.T1 — TrueSkill integration (`models/player_skill.py`). Rahat's call: **Phase 3 summary (T9) held open**; do Phase 4 (player skill) first, then revisit whether a player-strength feature lifts map prediction above the Elo ceiling (~57%) before finalizing Phase 3.
+**Last completed task:** P4.T1 — TrueSkill wrapper (`models/player_skill.py`): pure `update_skill` (sign of performance → win/loss/draw vs `opponent_skill`); 7 tests pass. trueskill==0.4.5 installed.
+**Next task:** P4.T2 — Replay to compute current skills (`scripts/build_player_skill.py`). **Phase 3 summary (T9) still held open** pending the player-skill-lift check.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +120,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P4.T1 — TrueSkill integration
+
+**Done:** Started Phase 4 (Rahat: player-skill first, to test a map-prediction lift). Installed `trueskill==0.4.5` (missing from the P0.T1 bootstrap; added to `requirements.txt` + CI). Added `models/player_skill.py` — pure `update_skill(player_id, agent, map_name, performance_score, opponent_skill, *, current=None, baseline=0.0)`: a map is a 1v1 TrueSkill match vs `opponent_skill`, outcome from the sign of `performance_score` (win/loss/draw). `new_rating()` helper; library-default env. Binary-outcome choice in DEVIATIONS 2026-06-06. Added `tests/test_player_skill.py` (7 tests).
+
+**Learned or surprised:** `env.rate_1vs1` is deprecated → use module-level `trueskill.rate_1vs1(..., env=_ENV)`. `draw_probability=0` makes a forced draw degenerate → use the library default (0.10). `player_id/agent/map_name` are identity keys, not math inputs (the T2 replay keys its store by them).
+
+**Verification:** `pytest tests/test_player_skill.py -q` → 7 passed (defaults, win↑mu/↓sigma, loss↓mu, draw-vs-equal no mean shift, beating stronger gains more, unseen-player default, sigma monotone↓). Full suite **94 passed**.
+
+**Files touched:**
+- `models/player_skill.py` (created)
+- `tests/test_player_skill.py` (created)
+- `requirements.txt` (modified — trueskill), `.github/workflows/ci.yml` (modified — install trueskill)
+- `docs/DEVIATIONS.md` (modified — binary-outcome + late install), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-4.task-1: trueskill player-skill wrapper`
 
 ### 2026-06-06 — P3.T8 (cont.) — Deep investigation of the underperformance
 

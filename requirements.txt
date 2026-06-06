@@ -7,3 +7,4 @@ marimo==0.23.8
 pytest==9.0.3
 structlog==25.5.0
 httpx==0.28.1
+trueskill==0.4.5

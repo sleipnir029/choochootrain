@@ -29,7 +29,7 @@ jobs:
         # pytest + the runtime deps the tests import. pandas added for the Phase 3
         # modeling tests (models.training_data). bambi/pymc not needed yet — no test
         # imports them (P3.T5 will revisit).
-        run: python -m pip install --upgrade pip pytest httpx structlog pandas
+        run: python -m pip install --upgrade pip pytest httpx structlog pandas trueskill
 
       - name: Run tests (placeholder — exit 5 = no tests yet, treated as pass)
         run: python -m pytest -q || [ $? -eq 5 ]

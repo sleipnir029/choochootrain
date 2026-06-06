@@ -57,6 +57,24 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Player skill: binary win/loss/draw from performance sign; trueskill installed late
+
+**Phase / Task:** P4.T1
+
+**Spec said:**
+SPEC §6.2 Layer 5 / TASKS P4.T1: TrueSkill rating per (player, agent, map); `update_skill(player_id, agent, map_name, performance_score, opponent_skill)`. CLAUDE.md stack lists the `trueskill` library.
+
+**What was actually done:**
+`models/player_skill.py` wraps `trueskill` (0.4.5). A map is a 1v1 TrueSkill match between the player and `opponent_skill`; the outcome is the **sign of `performance_score` vs `baseline`** (>baseline win, <baseline loss, ==baseline draw). Binary win/loss/draw is the library's native, minimal usage; margin-aware TrueSkill (how *much* a player over-performed) is a deferred refinement (cf. the Elo MOV choice, 2026-06-06). The prescribed signature is followed; `player_id/agent/map_name` are identity keys (the P4.T2 replay keys its store by them) and don't enter the math, and a keyword-only `current=` (defaulting to a fresh rating) supplies the player's prior rating. Uses the library-default env (mu=25, sigma=25/3, draw_probability=0.10) via the non-deprecated module-level `trueskill.rate_1vs1(..., env=_ENV)`.
+
+Also: `trueskill` was **not** installed in P0.T1 (that bootstrap installed only the 9 Phase-0 packages); added now — `requirements.txt` (`trueskill==0.4.5`) + CI install. It's a fixed-stack item, so no new-dependency approval needed.
+
+**Impact:** P4.T2 (replay) decides how `performance_score` is computed (e.g. normalized ACS vs opponent average) and owns the per-(player,agent,map) rating store. No schema change. `requirements.lock.txt` not regenerated (Windows freeze; trueskill is pure-Python, no transitive deps).
+
+**Rahat approval:** N/A (minimal/standard TrueSkill usage; trueskill is a pre-approved stack item).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — SPEC §6.3 map-level accuracy target (65-75%) not achievable — evidence-based ceiling ~57-60%
 
 **Phase / Task:** P3.T8 (validation + deep investigation, Rahat-requested)

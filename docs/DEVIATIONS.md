@@ -57,6 +57,26 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Map offsets: win-rate deviation converted to Elo points via a tunable scale
+
+**Phase / Task:** P3.T3
+
+**Spec said:**
+SPEC §6.2 Layer 2: map offset is "a deviation from the team's base Elo" (Elo points; Layer 3 uses "map-specific Elo difference"). TASKS P3.T3: "compute deviation between team's win rate on that map vs overall win rate; smooth using partial pooling toward 0." `elo_map_offsets.rating_offset` is the stored column.
+
+**What was actually done:**
+`models/elo_map_offsets.py` computes `raw_dev = map_win_rate - overall_win_rate`, shrinks it by sample size (`shrunk = raw_dev * games / (games + PRIOR_GAMES)`, `PRIOR_GAMES = 10`), then converts to Elo points (`offset = ELO_PER_WINRATE * shrunk`, `ELO_PER_WINRATE = 400`). Both constants are function args / CLI flags. TASKS specifies the computation (win-rate deviation + pooling) but not the win-rate→Elo conversion; that scale is a tuning knob, defaulted conservatively — the same "default now, tune on holdout" pattern SPEC §6.2 sets for the K-factor.
+
+**On "offsets sum to roughly 0 per team":**
+Deviations are defined in win-rate space, where the games-weighted sum is exactly 0; the unweighted, shrunk sum is small but nonzero. Per-team sums are ~0 in win-rate space (PRX = −0.114 across 12 maps, ~1pp/map; worst team −0.21, ~1.8pp/map). The ×400 Elo scaling inflates this to PRX −45.8 Elo / worst −84 Elo. No centering is applied (TASKS asks for pooling toward 0, not zero-mean centering) — values are reported transparently.
+
+**Impact:**
+P3.T4 adds `rating_offset` to base Elo to form the map-adjusted Elo / `map_elo_diff` feature, so the units match (Elo points). If the scale proves too strong/weak on the holdout, tune `ELO_PER_WINRATE` (and `PRIOR_GAMES`) — no schema change.
+
+**Rahat approval:** N/A (minor; follows the SPEC's Elo-point intent + K-factor "default + tune" precedent).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Elo replay uses a flat 1500 prior (region-based priors deferred)
 
 **Phase / Task:** P3.T2

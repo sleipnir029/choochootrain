@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T2 — Elo replay (`models/elo_replay.py` + `scripts/build_elo.py`): top-5 plausible (PRX #2, NRG #3, EDG #7, T1 #9, SEN #15).
-**Next task:** P3.T3 — Map-specific Elo offsets (`models/elo_map_offsets.py`).
+**Last completed task:** P3.T3 — Map-specific Elo offsets (`models/elo_map_offsets.py`): 625 (team,map) offsets; PRX 12 maps (Sunset +63 … Ascent −37), per-team sums ~0 in win-rate space.
+**Next task:** P3.T4 — Training data builder for the Bayesian regression (`models/training_data.py`).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T3 — Map-specific Elo offsets
+
+**Done:** Added `models/elo_map_offsets.py` — `compute_map_offsets(conn, *, prior_games=10, elo_per_winrate=400)`: per (team, map) `raw_dev = map_wr − overall_wr`, partial-pooled toward 0 by sample size (`× games/(games+prior)`), converted to Elo points (`× 400`), written to `elo_map_offsets` as a single latest-date snapshot (full rebuild = idempotent). Showmatches excluded. Small `--db/--prior/--scale` CLI in-module. Added `tests/test_elo_map_offsets.py` (5 tests). Units conversion + the two constants logged in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** "Offsets sum to ~0 per team" is exact only in *win-rate-weighted* space; the unweighted, shrunk, ×400 Elo sums are small but visible (PRX −45.8 Elo = −0.114 win-rate over 12 maps ≈ 1pp/map; worst team −84 Elo ≈ 1.8pp/map). Chose not to force-center (TASKS asks for pooling toward 0, not zero-mean) and to report transparently. PRX's offsets pass the eye test: Sunset +63 / Split +39 (strong), Ascent −37 / Corrode −35 (weak).
+
+**Verification:** `pytest tests/test_elo_map_offsets.py -q` → 5 passed (sign + zero-sum on symmetric data, small-sample shrinkage, latest as_of_date, showmatch exclusion, idempotent rebuild). Full suite **64 passed**. Live `python -m models.elo_map_offsets --db data/prx.db` → 625 (team,map) offsets; **PRX has 12 maps** (done-when ≥5); per-team sums ~0 in win-rate space.
+
+**Files touched:**
+- `models/elo_map_offsets.py` (created)
+- `tests/test_elo_map_offsets.py` (created)
+- `docs/DEVIATIONS.md` (modified — units/constants note)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-3: map-specific elo offsets`
 
 ### 2026-06-06 — P3.T2 — Replay all matches to compute current Elo
 

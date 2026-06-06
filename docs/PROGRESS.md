@@ -29,9 +29,10 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Phase:** 6 in progress (FastAPI backend). Rahat gave the go-ahead; scope this session is **backend only — T1+T2** (React dashboard T3–T10 deferred to a later go-ahead). Phases 0–5 done + tagged.
-**Last completed task:** P6.T2 — FastAPI server (`api/` package, 10 endpoints) + `models/upcoming.py` (as-of-now feature builder, closes the long-standing upcoming-match gap). Backend-only scope for this session is **done**.
-**Next task:** P6.T3 — React + Vite dashboard scaffold (frontend; T3–T10). **Do not auto-start** — awaiting Rahat's go-ahead per the agreed backend-only scope. Note for the frontend: pre-match panel consumes `/api/predict/pre-match` (both modes), live panel polls `/api/predict/live` (needs the P5 poller running), player panel uses the team-stint partitioning (D2).
+**Phase:** 6 complete (`v0.1.0-phase-6`). Phases 0–6 done + tagged. Awaiting Rahat go-ahead for Phase 7 (LLM adapter — DeepSeek explain + chat-on-data). Do not auto-start.
+**Last completed task:** P6.T11 — Phase 6 summary + tag `v0.1.0-phase-6`. FastAPI backend (10 endpoints) + React/Vite dashboard (4 panels, D3 auto-detect) + FastAPI static serving, all built and verified locally.
+**Next task:** P7.T1 — DeepSeek client (`llm/deepseek_client.py`), only after Rahat's go-ahead. Needs `DEEPSEEK_API_KEY` in `.env`. The contract slot `/api/llm/*` is already marked Phase 7; the pre-match panel has an explanation slot.
+**Open blockers:** Phase-6 container build (`docker compose up --build`) deferred to Phase 8 (app-level serving verified locally). Live panel needs the P5 poller running; the scheduler isn't registered yet. D3 default opponent falls back to 624-vs-188 (vlrggapi upcoming gives names, not IDs).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -144,6 +145,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Next phase prep:** Phase 6 API/dashboard reads `live_state` + `live_predictions`; the pre-match panel for an *upcoming* (unplayed) match needs the as-of-now feature builder (the recurring Phase-6 gap noted since P3.T7).
 
 ### Phase 6 — FastAPI + React dashboard
+
+**Built:** FastAPI backend (`api/`) — 10 endpoints: predict (pre-match ingested+upcoming / replay / live), teams (+active roster), players (+team-stint stats per D2), events (status-classified from the DB), matches/upcoming (vlrggapi, best-effort). New `models/upcoming.py` (as-of-now feature builder) closes the long-standing upcoming-match gap so **unplayed** matches can be predicted. `models/predict.py` gained `predict_map_win_prob_detailed`/`detailed_from_row`/`_top_factors` (mean + HDI + coef×feature attribution) without changing the float `predict_map_win_prob` the P5 poller uses. React+Vite+TS dashboard (`dashboard/`): dark-theme shell with a mode switcher, TanStack Query, and 4 panels — PreMatch (both modes, factors + HDI), Live (30s poll + Recharts sparkline), Player (per-stint table + ACS bars, D2), Replay (per-map round-prob line chart) — with D3 auto-detect. FastAPI serves the built bundle at `/`; multi-stage Dockerfile (node build → python app).
+
+**What works / numbers:** Full suite **141 passed** (was 123; +18 API/upcoming, prediction-path guarded for CI). `npm run build` clean (tsc strict). Verified end-to-end via TestClient: pre-match ingested (Bo5 666493 → series 0.17/0.83, per-map probs+HDI, factors), pre-match upcoming (PRX-vs-SEN 0.72, HDI 0.62–0.82 — matches the model CLI), replay round trace, live `no_live` fallback, D2 stint partitioning, and `/` serving the SPA alongside `/api`+`/docs`. OpenAPI exposes all 10 paths.
+
+**What's pending / deferred:**
+- **Container build (`docker compose up --build`) → Phase 8.** App-level serving is verified locally with uvicorn/TestClient; the heavy bambi/pymc image + posterior/warehouse volume wiring + health checks are Phase-8 deployment (DEVIATIONS 2026-06-06).
+- **LLM endpoints (`/api/llm/*`) → Phase 7** (explain + chat-on-data), marked in the contract.
+- **Live panel needs the P5 poller running** to show live predictions (scheduler registration is later); and **D3's true next-opponent** falls back to a representative 624-vs-188 matchup because vlrggapi upcoming gives names, not IDs.
+- Dashboard uses **state-driven view switching**, not §7.3 path routing (deep links a later nicety).
+
+**Surprises:** the `matches` table is completed-only, so upcoming prediction needed a genuinely separate as-of-now builder; async route + sync sqlite dependency needs `check_same_thread=False`; the factor attribution faithfully reflects Phase-3's near-zero (noisy-signed) recent-form coefficient — kept honest rather than hacked.
+
+**Next phase prep:** Phase 7 fills `api/routes/llm.py` (DeepSeek explain/chat) — the pre-match panel already has a slot for an LLM explanation; the chat endpoint reads the same warehouse.
+
+### Phase 7 — LLM adapter
 *Locked*
 
 ### Phase 7 — LLM adapter
@@ -157,6 +174,17 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P6.T11 — Phase 6 summary + tag
+
+**Done:** Wrote the Phase 6 summary (above) and updated Current state. Phase 6 (FastAPI prediction API + React dashboard) is complete: 10 endpoints, the upcoming-match feature builder, 4 dashboard panels with D3 auto-detect, and FastAPI static serving. Tagging `v0.1.0-phase-6`. Container build + LLM endpoints are explicitly deferred (Phase 8 / Phase 7).
+
+**Verification:** full suite **141 passed**; `npm run build` clean; TestClient serves `/` + `/api` + `/docs`.
+
+**Files touched:**
+- `docs/PROGRESS.md` (Phase 6 summary + current state + this entry)
+
+**Commit:** `<pending>` — `phase-6.task-11: phase 6 summary` (+ tag `v0.1.0-phase-6`)
 
 ### 2026-06-06 — P6.T10 — Build + serve dashboard from FastAPI
 

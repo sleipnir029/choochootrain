@@ -63,15 +63,48 @@ def state_changed(old, new):
     return [f for f in _CHANGE_FIELDS if old.get(f) != new.get(f)]
 
 
+_TIER_RANK = {"Champions": 3, "Masters": 2, "Kickoff": 1, "RegionalLeague": 1}
+
+
+def classify_tier(match_event):
+    """Tier of a live match from its event name (live_score's `match_event`).
+
+    Order matters: VCT names carry the "Champions Tour" circuit brand, so check the
+    specific tiers first and only treat a name as the Champions *tournament* when it
+    says "champion(s)" without the "champions tour" branding.
+    """
+    e = (match_event or "").lower()
+    if "kickoff" in e:
+        return "Kickoff"
+    if "master" in e:
+        return "Masters"
+    if "champion" in e and "champions tour" not in e:
+        return "Champions"
+    return "RegionalLeague"   # catch-all: regional league stages, "Champions Tour: ... Stage N"
+
+
+def _is_prx(seg):
+    return "paper rex" in f"{seg.get('team1', '')} {seg.get('team2', '')}".lower()
+
+
+def _priority_key(seg):
+    """Sort key (higher = higher priority): PRX > tier > earliest start."""
+    ts = _to_int(seg.get("unix_timestamp"))
+    return (
+        1 if _is_prx(seg) else 0,
+        _TIER_RANK.get(classify_tier(seg.get("match_event")), 0),
+        -(ts if ts is not None else float("inf")),   # earliest start wins ties
+    )
+
+
 def select_match(segments):
-    """Pick the live match to track: prefer Paper Rex, else the first (T4 refines)."""
+    """Pick the live match to track by SPEC-D3 priority: PRX > Champions > Masters >
+    Regional League > earliest start. No hard tier-2 exclusion — live matches aren't
+    in the curated tier-1 registry, so the key just deprioritizes non-tier-1 events
+    (DEVIATIONS 2026-06-06)."""
     if not segments:
         return None
-    for s in segments:
-        names = f"{s.get('team1', '')} {s.get('team2', '')}".lower()
-        if "paper rex" in names:
-            return s
-    return segments[0]
+    return max(segments, key=_priority_key)
 
 
 def write_live_state(conn, state):

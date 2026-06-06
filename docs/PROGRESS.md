@@ -30,8 +30,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
 **Phase:** 5 in progress (live update logic). Phases 0–4 complete + tagged. Rahat gave go-ahead for Phase 5.
-**Last completed task:** P5.T3 — Hook score-change → re-prediction (`make_prediction_callback` maps live_state, calls `predict_map_win_prob`, writes `live_predictions`); simulated ingested match stores a prediction per change.
-**Next task:** P5.T4 — Priority logic for multiple live matches (PRX > Champions > Masters > Regional > earliest).
+**Last completed task:** P5.T4 — Multi-match priority (`select_match`): PRX > Champions > Masters > Regional > earliest, from live_score's `match_event`/`unix_timestamp`; 4 priority tests.
+**Next task:** P5.T5 — Phase 5 summary (`docs/PROGRESS.md`, tag `v0.1.0-phase-5`).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -143,6 +143,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P5.T4 — Priority logic for multiple live matches
+
+**Done:** Refactored `select_match` in `scheduler/jobs/live_poll.py` into the SPEC-D3 priority (`_priority_key` = PRX > tier > earliest start), with `classify_tier(match_event)` + `_TIER_RANK`. Tier and start time come from the live_score segment's own `match_event`/`unix_timestamp` — no DB lookup. Extended `tests/test_live_poll.py` (+4). Tier-classification + soft-gap notes in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** VCT event names carry the **"Champions Tour"** circuit brand, so a naive "champions" match would misclassify Kickoff/Stage events — fixed by checking Kickoff/Masters first and excluding "champions tour" from the Champions tournament test. No hard tier-2 exclusion (live matches aren't in the curated registry) — documented soft gap.
+
+**Verification:** `pytest tests/test_live_poll.py -q` → 17 passed (classify Champions/Masters/Kickoff/Stage; PRX beats higher tier; Champions>Masters>Regional; earliest-start tiebreak). Full suite **123 passed**.
+
+**Files touched:**
+- `scheduler/jobs/live_poll.py` (modified — priority `select_match` + helpers)
+- `tests/test_live_poll.py` (modified — priority tests)
+- `docs/DEVIATIONS.md` (modified — tier classification + gap), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-5.task-4: multi-match priority`
 
 ### 2026-06-06 — P5.T3 — Hook score-change to re-prediction
 

@@ -57,6 +57,19 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Live priority (P5.T4): tier from match_event string; no hard tier-2 exclusion
+
+**Phase / Task:** P5.T4
+
+**What was done:**
+`select_match` now picks by SPEC-D3 priority — **PRX > Champions > Masters > Regional League > earliest start** — using the live_score segment's own `match_event` (tournament name) and `unix_timestamp` (no DB lookup). `classify_tier` checks Kickoff/Masters first and treats a name as the Champions *tournament* only when it lacks the **"Champions Tour"** circuit branding (VCT names like "Champions Tour 2024: Pacific Kickoff" would otherwise misclassify as Champions). Kickoff and league stages rank as Regional-League level.
+
+**Soft gap:** no hard tier-1/tier-2 *exclusion* — live matches aren't in the curated tier-1 ID registry, and event-name classification can't reliably separate tier-2 (Challengers/Game Changers). The key correctly prioritizes tier-1 when present; a lone non-tier-1 live match would still be tracked (its prediction no-ops via the un-ingested guard). Acceptable for v1; the done-when (priority ordering) is met.
+
+**Rahat approval:** N/A (implements SPEC-D3 priority; gap documented).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Live re-prediction (P5.T3): round-count live_state mapping; real-live-match gap
 
 **Phase / Task:** P5.T3

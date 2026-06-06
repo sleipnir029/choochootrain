@@ -12,6 +12,7 @@ import pytest
 
 from ingestion.schema import init_db
 from scheduler.jobs.live_poll import (
+    classify_tier,
     make_prediction_callback,
     parse_live_segment,
     poll_once,
@@ -70,6 +71,35 @@ def test_select_match_prefers_prx():
     segs = [_seg(1, "0", "0"), _seg(2, "0", "0", team1="Paper Rex", team2="NRG")]
     assert select_match(segs)["match_id"] == 2
     assert select_match([]) is None
+
+
+def test_classify_tier():
+    assert classify_tier("Valorant Champions 2025") == "Champions"
+    assert classify_tier("Valorant Masters Toronto 2025") == "Masters"
+    assert classify_tier("Champions Tour 2024: Pacific Kickoff") == "Kickoff"  # brand, not the tournament
+    assert classify_tier("Champions Tour 2024: Pacific Stage 1") == "RegionalLeague"
+    assert classify_tier("VCT 2025: Pacific Stage 2") == "RegionalLeague"
+    assert classify_tier(None) == "RegionalLeague"
+
+
+def test_priority_prx_beats_higher_tier():
+    champ = _seg(1, "0", "0", team1="NRG", team2="SEN", match_event="Valorant Champions 2025")
+    prx = _seg(2, "0", "0", team1="Paper Rex", team2="DRX", match_event="Valorant Masters Toronto 2025")
+    assert select_match([champ, prx])["match_id"] == 2   # PRX > higher tier
+
+
+def test_priority_tier_order_no_prx():
+    champ = _seg(1, "0", "0", team1="A", team2="B", match_event="Valorant Champions 2025")
+    masters = _seg(2, "0", "0", team1="C", team2="D", match_event="Masters Madrid")
+    regional = _seg(3, "0", "0", team1="E", team2="F", match_event="Pacific Stage 1")
+    assert select_match([regional, masters, champ])["match_id"] == 1   # Champions wins
+    assert select_match([regional, masters])["match_id"] == 2          # Masters > Regional
+
+
+def test_priority_same_tier_earliest_start():
+    early = _seg(1, "0", "0", team1="A", team2="B", match_event="Pacific Stage 1", unix_timestamp="1000")
+    late = _seg(2, "0", "0", team1="C", team2="D", match_event="EMEA Stage 1", unix_timestamp="2000")
+    assert select_match([late, early])["match_id"] == 1   # earliest start wins the tie
 
 
 def test_write_live_state_is_singleton(tmp_path):

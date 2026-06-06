@@ -29,8 +29,8 @@ export function ReplayPanel({ matchId }: { matchId?: number }) {
             <div className="sub" style={{ marginBottom: 6 }}>
               Map {m.map_index + 1} — {m.map_name}
             </div>
-            <div style={{ height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <div>
+              <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={data} margin={{ top: 6, right: 10, bottom: 0, left: -20 }}>
                   <CartesianGrid stroke="#2a3340" vertical={false} />
                   <XAxis dataKey="round" stroke="#8b949e" fontSize={11} />

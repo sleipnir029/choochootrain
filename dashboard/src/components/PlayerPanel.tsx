@@ -56,9 +56,9 @@ export function PlayerPanel({ playerId }: { playerId?: number }) {
       </table>
 
       {chart.length > 0 && (
-        <div style={{ height: 200, marginTop: 18 }}>
+        <div style={{ marginTop: 18 }}>
           <div className="sub">Average ACS per stint</div>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chart} margin={{ top: 6, right: 6, bottom: 0, left: -20 }}>
               <CartesianGrid stroke="#2a3340" vertical={false} />
               <XAxis dataKey="team" stroke="#8b949e" fontSize={12} />

@@ -59,9 +59,9 @@ export function LivePanel() {
       )}
 
       {history.length > 1 && (
-        <div style={{ height: 90, marginTop: 16 }}>
+        <div style={{ marginTop: 16 }}>
           <div className="sub">Probability trend</div>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={90}>
             <LineChart data={history} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
               <YAxis domain={[0, 1]} hide />
               <Tooltip

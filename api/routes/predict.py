@@ -123,7 +123,7 @@ def _pre_match_upcoming(conn, team1_id: int, team2_id: int, event_id):
 @router.get("/api/predict/replay")
 def replay(match_id: int, conn=Depends(get_conn)):
     """Round-by-round pre-round probability trace for a completed match."""
-    from models.predict import predict_map_win_prob
+    from models.predict import combine_prior_and_state, predict_map_win_prob, score_state_prob
 
     m = conn.execute(
         "SELECT team1_id FROM matches WHERE match_id = ?", (match_id,)
@@ -141,6 +141,14 @@ def replay(match_id: int, conn=Depends(get_conn)):
 
     out_maps = []
     for mp in maps:
+        # The pre-match prior is identical for every round of a map (a Bambi
+        # posterior-predictive); compute it ONCE, then apply the cheap score-state
+        # combine per round. Avoids re-running the model ~once per round.
+        try:
+            prior = predict_map_win_prob(match_id, mp["map_index"], db_path=db_path())
+        except ValueError:
+            prior = None
+
         rounds = conn.execute(
             "SELECT round_number, half, team1_side, winner_id FROM rounds "
             "WHERE map_id = ? ORDER BY round_number",
@@ -148,17 +156,14 @@ def replay(match_id: int, conn=Depends(get_conn)):
         ).fetchall()
         t1, t2, trace = 0, 0, []
         for rd in rounds:
-            live_state = {
-                "half": rd["half"],
-                "team1_score": t1,
-                "team2_score": t2,
-                "team1_side": rd["team1_side"],
-            }
-            try:
-                p = predict_map_win_prob(match_id, mp["map_index"],
-                                         live_state=live_state, db_path=db_path())
-            except ValueError:
+            if prior is None:
                 p = None
+            else:
+                p_state = score_state_prob({
+                    "half": rd["half"], "team1_score": t1, "team2_score": t2,
+                    "team1_side": rd["team1_side"],
+                }, db_path=db_path())
+                p = combine_prior_and_state(prior, p_state)
             trace.append({
                 "round": rd["round_number"],
                 "team1_side": rd["team1_side"],

@@ -175,6 +175,23 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — P6 fixes — replay perf + chart sizing (Playwright review)
+
+**Done:** Rahat ran the dashboard (`uvicorn api.main:app`) and reviewed it with Playwright; flagged issues. Drove the live app headlessly (chromium) + screenshotted every panel. Found and fixed two real issues:
+1. **Replay was slow (9.3s for 68 rounds).** `/api/predict/replay` re-ran the Bambi posterior-predictive prior for *every* round, but the prior is identical across a map's rounds (only the score-state changes). Added `models.predict.score_state_prob` (cheap lookup) and rewrote the replay route to compute the prior **once per map**, then `combine_prior_and_state` per round. **9.3s → 0.30s (31×)**, numerically identical output.
+2. **Recharts `width(-1)/height(-1)` console warnings.** Caused by a `.sub` heading sharing the fixed-height chart container in `PlayerPanel`/`LivePanel` (ResponsiveContainer measured a transiently-negative size). Gave each chart an explicit numeric `height` and moved headings out. Browser console is now clean (verified: 0 console/page errors).
+
+Also corrected a stale comment (default opponent 188 = Cloud9, not Sentinels).
+
+**Verification:** Playwright across all panels → no console/page errors; replay renders 3 per-map probability line charts; player (D2 stint table + ACS bars), pre-match (prob bar + factors + HDI), and live (`no_live`) all render correctly. TestClient replay **0.30s**; full suite **141 passed** (replay test's model calls dropped 68→3). **Note:** restart `uvicorn` to pick up the replay perf fix; refresh the browser for the rebuilt bundle.
+
+**Files touched:**
+- `models/predict.py` (added `score_state_prob`), `api/routes/predict.py` (replay route)
+- `dashboard/src/components/{PlayerPanel,LivePanel,ReplayPanel}.tsx` (chart sizing), `dashboard/src/App.tsx` (comment)
+- `docs/PROGRESS.md` (this entry)
+
+**Commit:** `<pending>` — `fix(phase-6): replay perf (31x) + chart sizing warnings`
+
 ### 2026-06-06 — P6.T11 — Phase 6 summary + tag
 
 **Done:** Wrote the Phase 6 summary (above) and updated Current state. Phase 6 (FastAPI prediction API + React dashboard) is complete: 10 endpoints, the upcoming-match feature builder, 4 dashboard panels with D3 auto-detect, and FastAPI static serving. Tagging `v0.1.0-phase-6`. Container build + LLM endpoints are explicitly deferred (Phase 8 / Phase 7).

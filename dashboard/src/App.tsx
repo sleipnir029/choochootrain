@@ -11,7 +11,7 @@ import { PlayerPanel } from './components/PlayerPanel'
 import { ReplayPanel } from './components/ReplayPanel'
 
 type Mode = 'live' | 'pre' | 'player' | 'replay'
-const DEFAULT_OPPONENT = 188 // Sentinels — representative PRX matchup until veto/schedule is known
+const DEFAULT_OPPONENT = 188 // Cloud9 — representative PRX matchup until veto/schedule is known
 
 const PLACEHOLDER: Record<Mode, string> = {
   live: '',

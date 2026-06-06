@@ -88,6 +88,19 @@ def _prematch_prob(model, idata, row_df):
     return float(pred.posterior["p"].mean())
 
 
+def score_state_prob(live_state, *, db_path=DB_DEFAULT):
+    """Empirical P(map win) for a live_state from the score-state lookup (0.5 if unseen).
+
+    Cheap (a dict lookup) — unlike the pre-match prior, which is a Bambi
+    posterior-predictive. Lets callers that hold a fixed prior (e.g. the replay
+    trace, where every round of a map shares one prior) avoid recomputing it.
+    """
+    _, _, _, _, score_state = _resources(db_path)
+    key = (live_state["half"], live_state["team1_score"],
+           live_state["team2_score"], live_state["team1_side"])
+    return score_state.get(key, 0.5)
+
+
 def predict_map_win_prob(match_id, map_index, live_state=None, *, db_path=DB_DEFAULT):
     """P(team1 wins the map). See module docstring for live_state shape."""
     df, model, idata, map_idx, score_state = _resources(db_path)

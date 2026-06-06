@@ -29,7 +29,7 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Next task:** P3.T9 — Phase 3 summary — **awaiting Rahat's call**: accept Elo-centric v1 with revised expectations (recommended) vs optional model simplification / further work.
+**Next task:** P4.T1 — TrueSkill integration (`models/player_skill.py`). Rahat's call: **Phase 3 summary (T9) held open**; do Phase 4 (player skill) first, then revisit whether a player-strength feature lifts map prediction above the Elo ceiling (~57%) before finalizing Phase 3.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 

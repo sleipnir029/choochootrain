@@ -26,10 +26,10 @@ jobs:
         run: python -m compileall -q . -x 'vendor/.*'
 
       - name: Install test dependencies
-        # pytest + the runtime deps the tests import. pandas added for the Phase 3
-        # modeling tests (models.training_data). bambi/pymc not needed yet — no test
-        # imports them (P3.T5 will revisit).
-        run: python -m pip install --upgrade pip pytest httpx structlog pandas trueskill
+        # pytest + the runtime deps the tests import. pandas for the Phase 3 modeling
+        # tests; fastapi/uvicorn for the Phase 6 API tests. bambi/pymc not installed —
+        # prediction-path tests importorskip it and skip in CI (no warehouse either).
+        run: python -m pip install --upgrade pip pytest httpx structlog pandas trueskill fastapi uvicorn
 
       - name: Run tests (placeholder — exit 5 = no tests yet, treated as pass)
         run: python -m pytest -q || [ $? -eq 5 ]

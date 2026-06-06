@@ -30,8 +30,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
 **Phase:** 6 in progress (FastAPI backend). Rahat gave the go-ahead; scope this session is **backend only — T1+T2** (React dashboard T3–T10 deferred to a later go-ahead). Phases 0–5 done + tagged.
-**Last completed task:** P6.T1 — API contract reconciliation (`docs/ARCHITECTURE.md` ↔ built code; DEVIATIONS entry).
-**Next task:** P6.T2 — FastAPI server (`api/main.py`, `api/routes/*.py`) + new `models/upcoming.py` (as-of-now feature builder, closes the long-standing upcoming-match gap). Add `fastapi`/`uvicorn` to `requirements.txt` + CI.
+**Last completed task:** P6.T2 — FastAPI server (`api/` package, 10 endpoints) + `models/upcoming.py` (as-of-now feature builder, closes the long-standing upcoming-match gap). Backend-only scope for this session is **done**.
+**Next task:** P6.T3 — React + Vite dashboard scaffold (frontend; T3–T10). **Do not auto-start** — awaiting Rahat's go-ahead per the agreed backend-only scope. Note for the frontend: pre-match panel consumes `/api/predict/pre-match` (both modes), live panel polls `/api/predict/live` (needs the P5 poller running), player panel uses the team-stint partitioning (D2).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -157,6 +157,27 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P6.T2 — FastAPI server + upcoming-match feature builder
+
+**Done:** Built the Phase-6 backend. New `api/` package: `main.py` (FastAPI app, CORS, lazy/opt-in `PRX_WARM` resource warming via lifespan), `deps.py` (per-request sqlite conn, `check_same_thread=False` for async routes), and one router per resource — `predict.py` (pre-match ingested+upcoming / replay / live), `teams.py`, `players.py`, `events.py`, `matches.py`. New `models/upcoming.py` closes the long-standing **upcoming-match gap**: `build_upcoming_features` reads snapshot/history tables (latest `elo_ratings`, current-roster mean `player_skill.mu`, last-5-map form, EB-shrunk H2H) into the FORMULA's feature columns, and `predict_upcoming_win_prob` runs it through `models.predict`'s cached Bambi model. Added `predict_map_win_prob_detailed` + `detailed_from_row` + `_top_factors` to `models/predict.py` (mean + HDI + coef×feature attribution) — the float `predict_map_win_prob` is untouched (P5 poller safe). `fastapi`/`uvicorn` added to `requirements.txt` + CI. Tests: `tests/test_api.py` (TestClient shapes, D2 stint partitioning, graceful no-vlrggapi) + `tests/test_upcoming.py` (feature shape/sign/antisymmetry + guarded predict).
+
+**Learned or surprised:**
+- The `matches` table is **completed-only**, so upcoming prediction needed a genuinely separate builder reading *as-of-now* state (no point-in-time replay; "now" is after all data → no leakage).
+- **Async route + sync generator dependency** creates the sqlite conn in a threadpool thread but runs the body in the event-loop thread → `check_same_thread=False` required.
+- **Factor attribution is faithfully noisy:** PRX-vs-SEN upcoming shows Player skill (0.40) + Elo (0.39) dominating correctly, but the near-zero/dead recent-form coefficients (Phase-3 finding) produce a counterintuitive "team1's 5-0 form favors team2" at low weight. Kept faithful to the model (documented as approximate, not Shapley) rather than hacking signs.
+- vlrggapi best-effort calls use `VlrClient(max_retries=0, timeout=5)` so live/upcoming fail fast (return `source: "unavailable"`) instead of stalling the request when the container is down.
+
+**Verification:** `python -m models.upcoming --db data/prx.db --team1 624 --team2 188` → P(PRX)=0.720 HDI [0.62,0.82], 0 NaN. TestClient: pre-match ingested (match 666493 Bo5 → series 0.17/0.83, 3 map probs+HDI, 4 factors), pre-match upcoming (0.719, matches the CLI), replay (3 maps, round trace 0.29→0.06), live → `no_live`/next-PRX (graceful when vlrggapi down), D2 stint partitioning (5 distinct-team stints). OpenAPI lists all 10 paths. Full suite **141 passed** (was 123; +18 new, prediction-path guarded/skipped in CI).
+
+**Files touched:**
+- `models/upcoming.py` (created), `models/predict.py` (modified — detailed helpers)
+- `api/main.py`, `api/deps.py`, `api/routes/__init__.py`, `api/routes/{predict,teams,players,events,matches}.py` (created)
+- `tests/test_api.py`, `tests/test_upcoming.py` (created)
+- `requirements.txt`, `.github/workflows/ci.yml` (modified — fastapi/uvicorn)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-6.task-2: fastapi server + upcoming-match feature builder`
 
 ### 2026-06-06 — P6.T1 — API contract reconciliation
 

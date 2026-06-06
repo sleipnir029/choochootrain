@@ -110,6 +110,92 @@ def predict_map_win_prob(match_id, map_index, live_state=None, *, db_path=DB_DEF
     return combine_prior_and_state(p_prior, p_state)
 
 
+# --- Detailed prediction (P6.T2): mean + credible interval + factor attribution ---
+# Used by the API/dashboard, not by the P5 live poller. The natural-language
+# explanation is a separate Phase-7 LLM call.
+
+_FACTOR_LABELS = {
+    "elo_diff": "Elo difference",
+    "skill_diff": "Player skill",
+    "map_elo_diff": "Map advantage",
+    "recent_form_team1": "Recent form (team1)",
+    "recent_form_team2": "Recent form (team2)",
+    "h2h_team1_win_rate": "Head-to-head",
+    "team1_starts_atk_or_def": "Starting side",
+}
+# feature column -> (Bambi posterior variable name, is the term wrapped in scale())
+_FACTOR_TERMS = {
+    "elo_diff": ("scale(elo_diff)", True),
+    "map_elo_diff": ("scale(map_elo_diff)", True),
+    "skill_diff": ("scale(skill_diff)", True),
+    "recent_form_team1": ("scale(recent_form_team1)", True),
+    "recent_form_team2": ("scale(recent_form_team2)", True),
+    "h2h_team1_win_rate": ("scale(h2h_team1_win_rate)", True),
+    "team1_starts_atk_or_def": ("team1_starts_atk_or_def", False),
+}
+
+
+def _top_factors(idata, row_df, df_train, *, n=4):
+    """Interpretable attribution: posterior-mean coef × standardized feature value.
+
+    Ranked by magnitude; ``favors`` = sign relative to team1; ``weight`` =
+    normalized share among the returned factors. Not exact Shapley.
+    """
+    post = idata.posterior
+    row = row_df.iloc[0]
+    contribs = []
+    for col, (var, scaled) in _FACTOR_TERMS.items():
+        if var not in post or col not in row_df.columns:
+            continue
+        coef = float(post[var].mean())
+        x = float(row[col])
+        if scaled:
+            mu = float(df_train[col].mean())
+            sd = float(df_train[col].std(ddof=0))
+            contrib = coef * ((x - mu) / sd if sd > 0 else 0.0)
+        else:
+            contrib = coef * x
+        if abs(contrib) > 1e-9:
+            contribs.append((col, contrib))
+
+    contribs.sort(key=lambda c: abs(c[1]), reverse=True)
+    top = contribs[:n]
+    total = sum(abs(c) for _, c in top) or 1.0
+    return [
+        {"factor": _FACTOR_LABELS.get(col, col),
+         "weight": round(abs(contrib) / total, 3),
+         "favors": "team1" if contrib > 0 else "team2"}
+        for col, contrib in top
+    ]
+
+
+def detailed_from_row(model, idata, row_df, df_train, *, n_factors=4, hdi_prob=0.94):
+    """{'team1_win_prob', 'hdi': [lo, hi], 'top_factors'} for a single feature row."""
+    import arviz as az
+
+    pred = model.predict(idata, data=row_df, inplace=False, sample_new_groups=True)
+    samples = pred.posterior["p"].values.reshape(-1)
+    lo, hi = az.hdi(samples, hdi_prob=hdi_prob)
+    return {
+        "team1_win_prob": float(samples.mean()),
+        "hdi": [float(lo), float(hi)],
+        "top_factors": _top_factors(idata, row_df, df_train, n=n_factors),
+    }
+
+
+def predict_map_win_prob_detailed(match_id, map_index, *, db_path=DB_DEFAULT, n_factors=4):
+    """Pre-match ``predict_map_win_prob`` plus an HDI and a factor breakdown."""
+    df, model, idata, map_idx, _ = _resources(db_path)
+    map_id = map_idx.get((match_id, map_index))
+    if map_id is None:
+        raise ValueError(f"no map for match {match_id} map_index {map_index}")
+    sel = df[df["map_id"] == map_id]
+    if sel.empty:
+        raise ValueError(f"no feature row for map_id {map_id} "
+                         f"(match {match_id} map_index {map_index}) — showmatch?")
+    return detailed_from_row(model, idata, sel.iloc[[0]].copy(), df, n_factors=n_factors)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--db", default=DB_DEFAULT)

@@ -92,3 +92,40 @@ def test_poll_once_no_live_match(tmp_path):
     conn = _conn(tmp_path)
     assert asyncio.run(poll_once(FakeClient([[]]), conn, None)) is None
     assert conn.execute("SELECT COUNT(*) FROM live_state").fetchone()[0] == 0
+
+
+def test_on_change_fires_once_per_change(tmp_path):
+    conn = _conn(tmp_path)
+    # Same match across 5 polls: baseline, repeat, change, repeat, change.
+    states = [_seg(7, "0", "0"), _seg(7, "0", "0"), _seg(7, "1", "0"),
+              _seg(7, "1", "0"), _seg(7, "1", "1")]
+    client = FakeClient([[s] for s in states])
+    calls = []
+
+    last = None
+    for _ in states:
+        last = asyncio.run(poll_once(client, conn, last, on_change=lambda s, c: calls.append(c)))
+
+    assert len(calls) == 2                     # only the two transitions, not baseline/repeats
+    assert calls[0] == ["team1_score"]
+    assert calls[1] == ["team2_score"]
+
+
+def test_on_change_not_fired_on_baseline_or_match_switch(tmp_path):
+    conn = _conn(tmp_path)
+    calls = []
+    cb = lambda s, c: calls.append(c)  # noqa: E731
+    s1 = asyncio.run(poll_once(FakeClient([[_seg(1, "0", "0")]]), conn, None, on_change=cb))
+    # different match next -> new track, not a change
+    asyncio.run(poll_once(FakeClient([[_seg(2, "5", "5")]]), conn, s1, on_change=cb))
+    assert calls == []
+
+
+def test_on_change_exception_is_swallowed(tmp_path):
+    conn = _conn(tmp_path)
+    def boom(state, changed):
+        raise RuntimeError("prediction blew up")
+    a = asyncio.run(poll_once(FakeClient([[_seg(3, "0", "0")]]), conn, None, on_change=boom))
+    # a change with a raising callback must not propagate
+    b = asyncio.run(poll_once(FakeClient([[_seg(3, "1", "0")]]), conn, a, on_change=boom))
+    assert b["team1_score"] == 1               # poll completed despite the callback error

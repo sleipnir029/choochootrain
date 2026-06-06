@@ -87,8 +87,15 @@ def write_live_state(conn, state):
     conn.commit()
 
 
-async def poll_once(client, conn, last_state):
-    """One poll: fetch live_score, select a match, log changes, persist. Returns new state or None."""
+async def poll_once(client, conn, last_state, on_change=None):
+    """One poll: fetch live_score, select a match, log/persist, fire on_change.
+
+    `on_change(state, changed)` is a synchronous callback invoked **once** per poll
+    in which a same-match score change is detected (`changed` = the changed fields).
+    It is not called on the baseline (first observation) or a match switch. A raising
+    callback is caught and logged so the poll loop survives. Returns the new state
+    (or None when nothing is live / the segment lacks a match_id).
+    """
     segments = await client.get_segments("/v2/match", q="live_score")
     seg = select_match(segments)
     if seg is None:
@@ -108,18 +115,24 @@ async def poll_once(client, conn, last_state):
         if changed:
             logger.info("score_change", match_id=state["match_id"], changed=changed,
                         **{f: state[f] for f in changed})
+            if on_change is not None:
+                try:
+                    on_change(state, changed)
+                except Exception as e:  # noqa: BLE001 - a callback failure must not kill the poller
+                    logger.error("on_change_failed", match_id=state["match_id"], error=repr(e))
     write_live_state(conn, state)
     return state
 
 
-async def run(db_path="data/prx.db", *, idle_interval=60, poll_interval=30, once=False):
+async def run(db_path="data/prx.db", *, idle_interval=60, poll_interval=30, once=False,
+              on_change=None):
     """IDLE/POLLING loop. `once=True` runs a single cycle (standalone smoke / tests)."""
     conn = sqlite3.connect(db_path)
     last = None
     try:
         async with VlrClient(cache=False) as client:
             while True:
-                last = await poll_once(client, conn, last)
+                last = await poll_once(client, conn, last, on_change=on_change)
                 if once:
                     break
                 await asyncio.sleep(poll_interval if last is not None else idle_interval)

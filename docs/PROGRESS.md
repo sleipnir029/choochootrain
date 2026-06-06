@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T8 — Holdout validation (`notebooks/02_model_validation.py`). **Result is BELOW SPEC target — surfaced to Rahat, decision pending before T9.** Masters holdout acc 50.9% (< majority 55.1% / Elo-sign 54.2%); model ≈ Elo-sign everywhere; in-sample only ~57% (signal ceiling, not overfitting).
-**Next task:** P3.T9 — Phase 3 summary — **BLOCKED** pending Rahat's call on the T8 underperformance (accept Elo-dominated v1 vs iterate).
+**Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
+**Next task:** P3.T9 — Phase 3 summary — **awaiting Rahat's call**: accept Elo-centric v1 with revised expectations (recommended) vs optional model simplification / further work.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,27 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T8 (cont.) — Deep investigation of the underperformance
+
+**Done:** Per Rahat's "deep investigate" choice, added ablation cells to `notebooks/02_model_validation.py` (univariate AUC per feature, parameter-free Elo-probability baseline, Bayes-optimal ceiling) and ran sklearn ablations + base-rate/calibration checks.
+
+**Conclusion — genuine signal ceiling, no bug:**
+- **No leakage/orientation bug:** in-sample acc also ~57%; `corr(elo_diff,won)` positive throughout; Elo-sign > 50%.
+- **No team1 artifact:** team1 win-rate ~0.50 across years/tiers; Masters 0.449 base is small-sample noise.
+- **Features beyond Elo are dead:** univariate AUC ≈ 0.50 (side 0.47-0.49, form ~0.46-0.55, H2H 0.50-0.56). `map_elo_diff` is marginally best on elite (AUC 0.584) but swapping it for the collinear pair doesn't change accuracy.
+- **Intrinsic ceiling:** parameter-free Elo-prob matches the fitted model; Bayes-opt accuracy ~0.587; elite Brier floor ~0.247 (vs 0.25 coin) → ~zero headroom. Elite teams are coinflips at map level; regional ~60%.
+
+**Recommendation:** accept an Elo-centric v1 with revised expectations (SPEC §6.3's 65-75% map target is not achievable here — DEVIATIONS 2026-06-06). System value = team ranking + the in-match score-state layer. Optionally simplify the model (drop zero-signal terms) — no accuracy cost or gain. Phase 4 (player skill) + more 2026 data are the future levers.
+
+**Verification:** `python notebooks/02_model_validation.py` runs end-to-end headless with all ablation/ceiling numbers; full suite still **87 passed**.
+
+**Files touched:**
+- `notebooks/02_model_validation.py` (modified — ablation cells + honest conclusion)
+- `docs/DEVIATIONS.md` (modified — §6.3 target not achievable, evidence)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-8: deep investigation of holdout underperformance`
 
 ### 2026-06-06 — P3.T8 — Validation on holdout (result below target — flagged)
 

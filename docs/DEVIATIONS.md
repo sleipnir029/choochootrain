@@ -57,6 +57,27 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — SPEC §6.3 map-level accuracy target (65-75%) not achievable — evidence-based ceiling ~57-60%
+
+**Phase / Task:** P3.T8 (validation + deep investigation, Rahat-requested)
+
+**Spec said:**
+SPEC §6.3: map-level accuracy 65-75%, Brier 0.20-0.23 (round 55-62%, series 70-80%).
+
+**What was found (deep investigation, `notebooks/02_model_validation.py`):**
+The pre-match map model reaches **51% on the mandated holdout** (Masters Toronto 2025 + Santiago 2026) and **57% across all post-cutoff maps** — at/just-below the Elo-sign baseline (54% / 58%), not 65-75%. This is a **genuine signal ceiling, not a bug**:
+- **No leakage / orientation bug:** in-sample (train) accuracy is also only ~57%; `corr(elo_diff, won)` is positive throughout; Elo-sign > 50%.
+- **No team1 assignment artifact:** team1 win-rate is ~0.50 across years and tiers (2024 0.519 / 2025 0.511 / 2026 0.475; tiers 0.47-0.53), so team1/team2 is effectively random w.r.t. outcome; the 0.449 Masters base rate is small-sample noise (n=118).
+- **Features beyond team Elo add ~nothing:** univariate AUC ≈ 0.50 for side/form/H2H (and the T5 posterior + sklearn ablations give them coefs ≈ 0). `map_elo_diff` is marginally the best single feature on elite events (AUC 0.584) but swapping it in for the collinear pair doesn't move accuracy.
+- **The ceiling is intrinsic:** a parameter-free Elo-probability matches the fitted model; the Bayes-optimal accuracy implied by Elo is only **~0.587**; on elite events the Brier *floor* is ~0.247 vs 0.250 for a coin (≈zero headroom). Top, evenly-matched teams are coinflips at map level; regional play (more lopsided) tops out ~60%.
+
+**Impact:**
+The 65-75% map target is revised down to a realistic **~57-60% (regional) / ~50-55% (elite)** for pre-match team features on this corpus. The system's value is **team-strength ranking + the in-match score-state layer (Layer 4)**, not pre-match map calls. No code bug to fix. Optional (no accuracy gain): simplify the model to drop the zero-signal terms — deferred to Rahat. Phase 4 (player skill) and more 2026 data are the realistic levers for any future lift.
+
+**Rahat approval:** pending — surfaced before the Phase 3 summary (T9). Decision: accept Elo-centric v1 with revised expectations vs further work.
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Prediction: log-odds pooling for the live update; feature row from the warehouse
 
 **Phase / Task:** P3.T7

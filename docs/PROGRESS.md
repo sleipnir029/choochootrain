@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T6 — Score-state empirical lookup (`models/score_state.py`): 408 states, 135,348 obs; up 9-3 at half on defense → 0.92 smoothed P(win map).
-**Next task:** P3.T7 — Combined prediction function (`models/predict.py`, `tests/test_predict.py`).
+**Last completed task:** P3.T7 — Combined prediction (`models/predict.py`): pre-match Bambi prior + live log-odds pooling with score-state. Sample PRX map: pre 0.334, up 9-3 → 0.852, down 3-9 → 0.065.
+**Next task:** P3.T8 — Validation on holdout (`notebooks/02_model_validation.py`): accuracy, Brier, calibration on Masters Toronto 2025 + Santiago 2026.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T7 — Combined prediction function
+
+**Done:** Added `models/predict.predict_map_win_prob(match_id, map_index, live_state=None)`. Pre-match: posterior-mean `p` from the Bambi model on the point-in-time feature row (`sample_new_groups=True` handles holdout patches). Live: **log-odds pooling** `logit(post)=logit(prior)+logit(p_state)` (`combine_prior_and_state`) — SPEC Layer 4's "posterior ∝ prior × likelihood" (score-state table's implicit prior ≈0.5, so its odds = the likelihood ratio). bambi/arviz imported lazily so the pure math is CI-testable. Resources cached per db path. Added `tests/test_predict.py` (7 tests). Rule + scope in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** Bambi posterior-predictive mean lives in `pred.posterior["p"]`. Pre-match prediction reuses the `build_training_data` point-in-time row, so it covers maps already in the warehouse; predicting an *upcoming* (unplayed) map needs an as-of-now feature builder → deferred to Phase 6. `live_state` is from team1's perspective.
+
+**Verification:** `pytest tests/test_predict.py -q` → 7 passed (5 pure: roundtrip, neutral-state/neutral-prior identities, direction/monotonic, symmetry; 2 guarded integration: real-map 0<p<1 with up>pre>down, unknown-map raises). Full suite **87 passed**. Live `python -m models.predict --db data/prx.db` (latest PRX map 666493 Fracture): pre-match **0.334**; up 9-3 def **0.852**; down 3-9 def **0.065**; 0-0 start 0.322 (≈ prior).
+
+**Files touched:**
+- `models/predict.py` (created)
+- `tests/test_predict.py` (created)
+- `docs/DEVIATIONS.md` (modified — log-odds pooling + scope)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-7: combined prediction function`
 
 ### 2026-06-06 — P3.T6 — Score-state empirical lookup
 

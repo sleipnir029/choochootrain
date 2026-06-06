@@ -57,6 +57,25 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Prediction: log-odds pooling for the live update; feature row from the warehouse
+
+**Phase / Task:** P3.T7
+
+**Spec said:**
+TASKS P3.T7: `predict_map_win_prob(match_id, map_index, live_state=None)` — pre-match = Bayes logistic; live = "Bayesian update combining pre-match prior + score_state lookup". SPEC §6.2 Layer 4: "posterior ∝ prior × likelihood-from-score."
+
+**What was actually done:**
+`models/predict.py` implements the live update as **log-odds pooling**: `logit(post) = logit(prior) + logit(p_state)` (`combine_prior_and_state`). Justification: the score-state table is built over all teams from both perspectives, so its implicit prior at a state is the league-average matchup (~0.5); thus `odds(p_state)` is the score evidence's likelihood ratio, and prior_odds × LR = posterior_odds — exactly "posterior ∝ prior × likelihood." At the 0-0 start `p_state ≈ 0.5` so the posterior equals the prior. `live_state` is a dict from **team1's** perspective `{half, team1_score, team2_score, team1_side}`; an unseen state falls back to 0.5 (neutral).
+
+The **pre-match prior** is the Bambi posterior-mean `p` (`model.predict(idata, data=row, sample_new_groups=True)` — the latter handles holdout patches unseen in train). The feature row is the **point-in-time row from `build_training_data`** for that `(match_id, map_index)` — so prediction currently works for maps that exist in the warehouse (the P3.T8 holdout, the demo). Predicting a *future/unplayed* map (no row yet) needs an as-of-now feature builder — deferred to Phase 6 (the API/dashboard), out of scope for T7's done-when ("sample call for a known match").
+
+**Impact:**
+P5 (live poller) supplies `live_state`; P6 will add upcoming-match feature construction. The `(match_id, map_index)→map_id` and score-state tables are cached per db path on first call. Requires the saved posterior (`models/saved/bayes_logistic.nc`).
+
+**Rahat approval:** N/A (faithful implementation of SPEC Layer 4; pre-match scope matches the T7 done-when).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Bayesian logistic: model spec, numba backend workaround, .nc not committed
 
 **Phase / Task:** P3.T5

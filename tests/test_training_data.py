@@ -63,10 +63,12 @@ def test_row_count_no_nan_and_columns(tmp_path):
     df = build_training_data(conn)
     assert len(df) == 3  # one row per competitive map
     assert df.isna().sum().sum() == 0
-    for col in ["elo_diff", "map_elo_diff", "team1_starts_atk_or_def",
+    for col in ["elo_diff", "map_elo_diff", "skill_diff", "team1_starts_atk_or_def",
                 "recent_form_team1", "recent_form_team2", "h2h_team1_win_rate",
                 "patch_id", "tier", "team1_won"]:
         assert col in df.columns
+    # no map_player_stats in this synthetic DB -> skill_diff falls back to 0.0 (no NaN)
+    assert (df["skill_diff"] == 0.0).all()
 
 
 def test_first_match_is_neutral(tmp_path):

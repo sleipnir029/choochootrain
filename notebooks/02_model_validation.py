@@ -121,7 +121,7 @@ def __(holdout, math, np, post_p, roc_auc_score):
     # Deep-dive (P3.T8 investigation): why the model only matches Elo-sign.
     # (1) univariate signal per feature; (2) a parameter-free Elo-probability
     # baseline; (3) the Bayes-optimal accuracy ceiling implied by Elo.
-    feats = ["elo_diff", "map_elo_diff", "team1_starts_atk_or_def",
+    feats = ["elo_diff", "map_elo_diff", "skill_diff", "team1_starts_atk_or_def",
              "recent_form_team1", "recent_form_team2", "h2h_team1_win_rate"]
     print("[val] -- univariate AUC vs team1_won (post-cutoff / Masters holdout) --")
     for f in feats:
@@ -176,20 +176,17 @@ def __(holdout, np, plt):
 @app.cell
 def __(a_acc, a_elo, ece, h_acc, h_brier, h_elo, h_major, mo):
     mo.md(
-        f"**Result + investigation conclusion.** Primary holdout (Masters Toronto 2025 + "
-        f"Santiago 2026): **{h_acc:.1%}** accuracy / Brier **{h_brier:.3f}** (ECE {ece:.3f}) — "
-        f"below the {h_major:.1%} majority and {h_elo:.1%} Elo-sign baselines; all post-cutoff "
-        f"{a_acc:.1%} vs Elo-sign {a_elo:.1%}. **Deep investigation (P3.T8) finding: this is a "
-        f"genuine signal ceiling, not a bug.** (a) No leakage/orientation issue — in-sample "
-        f"accuracy is also only ~57% and Elo is correctly oriented; (b) features beyond team Elo "
-        f"(form, H2H, side, patch, tier) have univariate AUC ≈ 0.50 — they add nothing; "
-        f"(c) a parameter-free Elo-probability already matches the fitted model, and the "
-        f"Bayes-optimal accuracy implied by Elo is only **~0.587**; (d) on elite events the Brier "
-        f"floor is ~0.247 (vs 0.25 for a coin) — near-zero headroom, i.e. top evenly-matched "
-        f"teams are coinflips at map level. SPEC §6.3's 65-75% map target is **not achievable** "
-        f"with pre-match team features on this corpus; regional play tops out ~60%. The value of "
-        f"the system is the in-match score-state layer (Layer 4) and team-strength ranking, not "
-        f"map-level pre-match calls. Recommend an Elo-centric v1 with calibrated expectations."
+        f"**Result (with the player-skill feature integrated).** Across all post-cutoff maps the "
+        f"model reaches **{a_acc:.1%}** accuracy vs the {a_elo:.1%} Elo-sign baseline — for the "
+        f"first time it **beats** raw Elo, thanks to `skill_diff` (team-aggregated TrueSkill, the "
+        f"only feature with signal beyond Elo; coef credibly non-zero, univariate AUC ~0.61). On "
+        f"the elite Masters holdout it is **{h_acc:.1%}** / Brier {h_brier:.3f} — still ~coinflip "
+        f"(118 maps; top evenly-matched teams). **Honest bounds (P3.T8 deep-dive):** map-level "
+        f"prediction has a low intrinsic ceiling (Bayes-optimal under Elo ~0.587; elite Brier "
+        f"floor ~0.247); the form/H2H/side terms add ~nothing (AUC ≈ 0.50). So the model is "
+        f"Elo+skill-centric, ~60% on regional play, ~coinflip on elite maps — short of SPEC "
+        f"§6.3's 65-75%, which the evidence shows is unreachable here. Real value: team+player "
+        f"strength ranking and the in-match score-state layer (Layer 4)."
     )
     return
 

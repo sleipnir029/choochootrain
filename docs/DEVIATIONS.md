@@ -57,6 +57,23 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Player-skill feature integrated into the pre-match model
+
+**Phase / Task:** Phase 3 revisit → integration (Rahat-approved)
+
+**What was done:**
+Added `skill_diff` (point-in-time team TrueSkill diff) to the production model:
+- `models/training_data.py` imports `scripts.build_player_skill.replay_skill_diffs` and adds a `skill_diff` column (per `map_id`, `fillna(0.0)` for the ~3 maps without two identifiable lineups; no-NaN invariant preserved). One extra `map_player_stats` pass per `build_training_data` call (cached in `predict._resources`). Intentional `models`→`scripts` import (no cycle).
+- `models/bayes_logistic.py` `FORMULA` gains `+ scale(skill_diff)`; posterior refit.
+
+**Result:** refit converged (max r̂ 1.0000, 0 div); **`scale(skill_diff)` = 0.214, 94% HDI [0.093, 0.333]** — credibly non-zero, co-dominant with `elo_diff` (0.201). On the broad post-cutoff holdout the Bambi model now **beats the Elo-sign baseline for the first time: 0.583 acc vs 0.580** (was 0.571), Brier 0.240 (was 0.242), RegionalLeague 0.602. Elite Masters stays ~coinflip (0.534, n=118). `skill_diff` univariate AUC 0.614 broad / 0.603 Masters — the strongest single feature. The formula was **not** simplified (the lift held without dropping the dead terms).
+
+**Impact:** `models/saved/bayes_logistic.nc` regenerated (gitignored — rebuild via `python -m models.bayes_logistic`). `predict.py`/`expected_stats.py` unchanged (they pick up the new feature/formula automatically). Honest bounds unchanged: map-level prediction remains hard; no claim near SPEC §6.3's 65-75%.
+
+**Rahat approval:** yes (integrate, planned).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Player skill DOES lift map prediction beyond the Elo ceiling (revises P3.T8)
 
 **Phase / Task:** Phase 3 revisit (Rahat-directed: Phase 4 before finalizing Phase 3)

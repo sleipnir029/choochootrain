@@ -41,7 +41,8 @@ RHAT_THRESHOLD = 1.05
 SAVE_PATH = "models/saved/bayes_logistic.nc"
 
 FORMULA = (
-    "team1_won ~ scale(elo_diff) + scale(map_elo_diff) + team1_starts_atk_or_def"
+    "team1_won ~ scale(elo_diff) + scale(map_elo_diff) + scale(skill_diff)"
+    " + team1_starts_atk_or_def"
     " + scale(recent_form_team1) + scale(recent_form_team2)"
     " + scale(h2h_team1_win_rate) + C(tier) + (1|patch_id)"
 )

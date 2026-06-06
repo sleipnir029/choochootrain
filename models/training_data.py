@@ -34,6 +34,9 @@ import pandas as pd
 from models.elo import DEFAULT_K, update_elo
 from models.elo_map_offsets import ELO_PER_WINRATE, PRIOR_GAMES
 from models.elo_replay import INITIAL_RATING
+# Point-in-time team player-skill diff (the Phase-3 revisit feature). models->scripts
+# import is intentional: build_player_skill imports only models.player_skill, no cycle.
+from scripts.build_player_skill import replay_skill_diffs
 
 FORM_WINDOW = 5      # rolling window for recent form, in maps
 H2H_PRIOR = 4.0      # empirical-Bayes shrinkage strength for H2H, toward 0.5
@@ -151,6 +154,10 @@ def build_training_data(conn, *, k=DEFAULT_K, initial_rating=INITIAL_RATING):
         flush(pending)
 
     df = pd.DataFrame(rows)
+    # Team player-skill diff (mean TrueSkill mu, team1 - team2, pre-map). Maps without
+    # two identifiable lineups (~3) get 0.0 (neutral) so the no-NaN invariant holds.
+    skill = replay_skill_diffs(conn)
+    df["skill_diff"] = df["map_id"].map(skill).fillna(0.0)
     if side_fallbacks:
         df.attrs["side_fallbacks"] = side_fallbacks
     return df

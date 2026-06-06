@@ -28,8 +28,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Current state
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
-**Last completed task:** P3.T5 — Bambi logistic fit (`models/bayes_logistic.py`): converged max r̂=1.0000, 0 divergences; `elo_diff` dominant (0.28). Numba backend (local g++ broken).
-**Next task:** P3.T6 — Score-state empirical lookup (`models/score_state.py`).
+**Last completed task:** P3.T6 — Score-state empirical lookup (`models/score_state.py`): 408 states, 135,348 obs; up 9-3 at half on defense → 0.92 smoothed P(win map).
+**Next task:** P3.T7 — Combined prediction function (`models/predict.py`, `tests/test_predict.py`).
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -119,6 +119,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P3.T6 — Score-state empirical lookup
+
+**Done:** Added `models/score_state.compute_score_state(conn)` — walks each non-showmatch map's rounds in order, and at every pre-round state records two observations (`(half, team_score, opp_score, side)` from each team's perspective) labelled by whether that team won the **map**. Aggregates into `score_state_lookup` with Laplace-smoothed `(wins+5)/(obs+10)`. Full rebuild (idempotent); in-module `--db` CLI with spot-checks. Added `tests/test_score_state.py` (6 tests).
+
+**Learned or surprised:** Win counted is the **map** outcome (not next-round), confirmed by the done-when example. Each round → 2 observations (both perspectives), so 135,348 obs = 2 × (67,799 − 125 showmatch) rounds. Included **'ot'** states too (the schema comment lists only first/second, but OT states are real and the live predictor will hit them) — minor completeness choice, column is unconstrained TEXT.
+
+**Verification:** `pytest tests/test_score_state.py -q` → 6 passed (counts+symmetry, smoothing formula, cross-map accumulation, big-lead high / mirror low, showmatch exclusion, idempotent). Full suite **80 passed**. Live `python -m models.score_state --db data/prx.db` → 408 states; done-when spot-check **(second, 9-3, ct) = 0.920**; (first,0-0) 0.514/0.486; (second,3-9,ct)=0.121; (second,1-11,t)=0.083.
+
+**Files touched:**
+- `models/score_state.py` (created)
+- `tests/test_score_state.py` (created)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-3.task-6: score-state empirical lookup`
 
 ### 2026-06-06 — P3.T5 — Fit Bambi logistic regression
 

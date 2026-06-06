@@ -29,8 +29,8 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Last completed task:** P4.T1 — TrueSkill wrapper (`models/player_skill.py`): pure `update_skill` (sign of performance → win/loss/draw vs `opponent_skill`); 7 tests pass. trueskill==0.4.5 installed.
-**Next task:** P4.T2 — Replay to compute current skills (`scripts/build_player_skill.py`). **Phase 3 summary (T9) still held open** pending the player-skill-lift check.
+**Last completed task:** P4.T2 — Player-skill replay (`scripts/build_player_skill.py`): 477 players rated, 439 with ≥10 maps; top by mu−3σ = aspas/Derke/Alfajer/zekken/t3xture (face-valid).
+**Next task:** P4.T3 — Expected stats prediction (`models/expected_stats.py`). **Phase 3 summary (T9) still held open** pending the player-skill-lift check.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -120,6 +120,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P4.T2 — Replay to compute current player skills
+
+**Done:** Added `scripts/build_player_skill.py` — `replay(conn)` walks resolved `map_player_stats` in date order; each map is one TrueSkill round (performance = player ACS − opposing team avg ACS; opponent = mean(mu,sigma) of the 5 opposing players' current ratings; all 10 update from pre-map ratings). `build(conn)` writes the current **overall** rating per player (agent/map NULL, stamped with last-played date; idempotent rebuild). `--db/--min-maps` CLI prints the top players by conservative skill (mu−3σ). Added `tests/test_build_player_skill.py` (5 tests). Scope/definition choices in DEVIATIONS 2026-06-06.
+
+**Learned or surprised:** Top conservative ratings are recognizable stars (aspas, Derke, Alfajer, zekken, t3xture, ZmjjKK, BuZz, marteen) — strong face validity for an ACS-driven rating. Per-(agent,map) cells deferred (would be sparse) — overall rating is what the ≥10-map done-when and the team-strength feature need.
+
+**Verification:** `pytest tests/test_build_player_skill.py -q` → 5 passed (one row/player, consistent over/under-performer rises/falls, last-map as_of_date, showmatch exclusion, idempotent). Full suite **99 passed**. Live `python -m scripts.build_player_skill --db data/prx.db` → **477 rated, 439 with ≥10 maps** (done-when), face-valid top-15.
+
+**Files touched:**
+- `scripts/build_player_skill.py` (created)
+- `tests/test_build_player_skill.py` (created)
+- `docs/DEVIATIONS.md` (modified — T2 scope/definitions), `docs/PROGRESS.md` (modified)
+
+**Commit:** `<pending>` — `phase-4.task-2: player-skill replay -> player_skill`
 
 ### 2026-06-06 — P4.T1 — TrueSkill integration
 

@@ -57,6 +57,22 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — Player-skill replay: overall rating only; ACS-vs-opponent performance, mean-of-5 opponent
+
+**Phase / Task:** P4.T2
+
+**Spec said:**
+SPEC §6.2 Layer 5: TrueSkill rating per (player, agent, map). TASKS P4.T2: replay `map_player_stats` chronologically; performance score "e.g. normalized ACS vs opponent average"; populate `player_skill` for all players with ≥10 maps.
+
+**What was actually done:**
+`scripts/build_player_skill.py` computes the **overall** rating per player (`agent=NULL, map_name=NULL`) — what the ≥10-map done-when and the planned team-strength feature need. Per-(agent, map) cells (Layer 5's full granularity) are **deferred** until a consumer needs them (P4.T3 expected-stats / dashboard) — populating them now would be thousands of sparse, low-sample cells (YAGNI). Definitions: a player's **performance** = their ACS − the opposing team's average ACS (sign → win/loss/draw); the **opponent** for the 1v1 update is the aggregate (mean mu, mean sigma) of the five opposing players' current ratings. All ten players update from pre-map ratings (no within-map leakage); each player's row is stamped with their last-played date. Showmatches and rows lacking a resolved `player_id` or `acs` are excluded.
+
+**Impact:** `player_skill` holds one overall row per player (477 rated; 439 with ≥10 maps). Top conservative ratings (mu−3σ) are recognizable stars (aspas, Derke, Alfajer, zekken, t3xture…), a good face-validity check. Adding per-(agent, map) ratings later is additive (same schema). The mean-of-5 opponent is a simplification of full team-vs-team TrueSkill (`trueskill.rate`) — adequate for a v1 over/under-performance signal.
+
+**Rahat approval:** N/A (implementation choices within the approved Layer-5 approach; the per-(agent,map) deferral is a scope/YAGNI call, additive later).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Player skill: binary win/loss/draw from performance sign; trueskill installed late
 
 **Phase / Task:** P4.T1

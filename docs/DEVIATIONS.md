@@ -57,6 +57,28 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-06 — API contract reconciled to reality (P6.T1)
+
+**Phase / Task:** P6.T1
+
+**Spec said:**
+ARCHITECTURE.md §5.3 declared `predict_map_win_prob(...) -> Prediction(team1_win_prob, top_factors, confidence)`; §3.1 declared `/api/predict/pre-match?match_id=` returning `series_win_prob` + `map_predictions` + `top_factors`.
+
+**What was actually done:**
+Reconciled the documented contract with the built code (P6.T1 is "write *or confirm* the contract"):
+- **`predict_map_win_prob` returns a bare `float`** — the `Prediction(...)` object was never built and the P5 live poller depends on the float. §5.3 now documents the float plus two thin Phase-6 composition helpers, `models.predict.predict_map_win_prob_detailed` (mean + HDI + factor attribution) and `models.upcoming.predict_upcoming_win_prob`, used only by the API.
+- **`top_factors`** is documented as an *interpretable attribution* (posterior-mean coef × standardized feature value per term, ranked; `favors` = sign vs team1) — explicitly not exact Shapley. The natural-language explanation stays a Phase-7 LLM call.
+- **`series_win_prob`** is *derived, not modeled* — maps as independent Bernoulli(p), Bo-N series prob in closed form; upcoming mode uses one team-strength `p` for all maps.
+- **`/api/predict/pre-match` gains an upcoming mode** (`team1_id`+`team2_id` instead of `match_id`) so D3's "PRX's next scheduled match" — which is **not** in the `matches` table (completed matches only, P2.T5) — can be predicted via the new as-of-now feature builder.
+- Pre-match/live responses surface an **HDI** (SPEC §6.1 uncertainty), and `/api/predict/live` is documented as **reading** the poller's `live_state`/`live_predictions` tables (not polling vlrggapi itself).
+- `/api/llm/*` marked Phase 7 (not built in the Phase 6 backend).
+
+**Impact:** No schema change. P6.T2 implements exactly this. The `predict_map_win_prob` float signature is preserved (no break to P5). `models/upcoming.py` is a new additive module.
+
+**Rahat approval:** yes (chose "build the as-of-now feature builder" + backend-only scope for this session).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-06 — Live priority (P5.T4): tier from match_event string; no hard tier-2 exclusion
 
 **Phase / Task:** P5.T4

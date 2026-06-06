@@ -29,9 +29,9 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 **Phase:** 3 in progress (statistical modeling). Phase 2 (`v0.1.0-phase-2`) + deferred Phase 0 validation (`v0.1.0-phase-0`) complete. Rahat gave the go-ahead for Phase 3.
 **Last completed task:** P3.T8 + deep investigation (Rahat-requested). **Conclusion: signal ceiling, not a bug** — Bayes-opt accuracy ~0.587; features beyond Elo have AUC≈0.50; in-sample also ~57%; no leakage/orientation/base-rate bug. SPEC §6.3's 65-75% map target is unachievable on this corpus (DEVIATIONS 2026-06-06).
-**Phase:** 5 complete (`v0.1.0-phase-5`). Phases 0–5 done + tagged. Awaiting Rahat go-ahead for Phase 6 (FastAPI + React dashboard). Do not auto-start.
-**Last completed task:** P5.T5 — Phase 5 summary + tag `v0.1.0-phase-5`.
-**Next task:** P6.T1 — API contract draft (`docs/ARCHITECTURE.md`), only after Rahat's go-ahead. Note the Phase-6 dependency: an upcoming-match feature builder (un-played matches) for pre-match prediction.
+**Phase:** 6 in progress (FastAPI backend). Rahat gave the go-ahead; scope this session is **backend only — T1+T2** (React dashboard T3–T10 deferred to a later go-ahead). Phases 0–5 done + tagged.
+**Last completed task:** P6.T1 — API contract reconciliation (`docs/ARCHITECTURE.md` ↔ built code; DEVIATIONS entry).
+**Next task:** P6.T2 — FastAPI server (`api/main.py`, `api/routes/*.py`) + new `models/upcoming.py` (as-of-now feature builder, closes the long-standing upcoming-match gap). Add `fastapi`/`uvicorn` to `requirements.txt` + CI.
 **Open blockers:** repo is public by choice (secrets in gitignored `.env`). 29 player handles unresolved (1.2% of stat rows, by design). Phase 0 not a literal Peng replication (loadout unavailable per round).
 **Workflow note:** working directly on `main` now (no per-phase branches) — Rahat's call after a stale branch caused a duplicate Phase 1.
 
@@ -157,6 +157,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 ## Entries
 
 *Newest at top. Don't edit old entries.*
+
+### 2026-06-06 — P6.T1 — API contract reconciliation
+
+**Done:** Started Phase 6 (Rahat go-ahead; backend-only scope T1–T2 this session). Reconciled `docs/ARCHITECTURE.md` §3/§5.3 with the built code rather than the aspirational original. Key changes: `predict_map_win_prob` documented as returning a bare `float` (the `Prediction(...)` object was never built; the P5 poller depends on the float), with two new Phase-6 composition helpers (`predict_map_win_prob_detailed`, `models.upcoming.predict_upcoming_win_prob`); `top_factors` = interpretable coef×feature attribution (not Shapley); `series_win_prob` = derived Bo-N binomial; `/api/predict/pre-match` gains an **upcoming mode** (`team1_id`+`team2_id`) for D3's next-PRX-match (not in the `matches` table); HDI surfaced per SPEC §6.1; `/api/predict/live` reads the poller's tables; `/api/llm/*` marked Phase 7. DEVIATIONS entry added.
+
+**Learned or surprised:** The `matches` table holds **completed matches only** (P2.T5), so the D3 default view genuinely has no row — the upcoming-match feature builder (T2, `models/upcoming.py`) is required, not optional. FastAPI 0.115.6 + uvicorn 0.49.0 are installed but **missing from `requirements.txt`** (same gap as trueskill) — to be added in T2.
+
+**Verification:** Docs-only task; read-through confirms every dashboard endpoint is documented and the contract now matches the real `predict` signature. No code changed → test suite unaffected (123 passing as of P5.T5).
+
+**Files touched:**
+- `docs/ARCHITECTURE.md` (modified — §3.1 pre-match/live, §3.3 LLM, §5.3 signatures)
+- `docs/DEVIATIONS.md` (modified — P6.T1 reconciliation entry)
+- `docs/PROGRESS.md` (modified — current state + this entry)
+
+**Commit:** `<pending>` — `phase-6.task-1: api contract reconciliation`
 
 ### 2026-06-06 — P5.T5 — Phase 5 summary + tag
 

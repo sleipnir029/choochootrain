@@ -293,28 +293,42 @@ Base URL: `http://localhost:8000/api/`. All responses JSON.
 
 ### 3.1 Predictions
 
-#### `GET /api/predict/pre-match?match_id={id}`
-Returns the pre-match prediction for a scheduled match.
+#### `GET /api/predict/pre-match?match_id={id}` — *ingested mode*
+#### `GET /api/predict/pre-match?team1_id={a}&team2_id={b}[&event_id={e}]` — *upcoming mode*
+Returns the pre-match prediction. **Two modes** (one of `match_id` *or* the `team1_id`+`team2_id` pair is required):
+- **ingested** (`match_id`): the match already exists in the warehouse (completed/demo). Per-map probabilities come from `models.predict.predict_map_win_prob` on each ingested map.
+- **upcoming** (`team1_id`+`team2_id`): a match **not** in the warehouse (e.g. PRX's next scheduled match per D3). Maps aren't known until veto, so a single team-strength prob is used and `map_predictions` is empty. Backed by `models.upcoming.predict_upcoming_win_prob` (the as-of-now feature builder).
+
 ```json
 {
+  "mode": "ingested",
   "match_id": 595657,
   "team1": {"id": 624, "name": "Paper Rex", "logo": "..."},
   "team2": {"id": 188, "name": "Sentinels", "logo": "..."},
   "series_win_prob": {"team1": 0.62, "team2": 0.38},
+  "series_format": "Bo3",
   "map_predictions": [
-    {"map_name": "Bind", "team1_win_prob": 0.71, "picked_by": "team1"},
-    {"map_name": "Ascent", "team1_win_prob": 0.55, "picked_by": "team2"}
+    {"map_name": "Bind", "team1_win_prob": 0.71, "team1_win_prob_hdi": [0.64, 0.78], "picked_by": "team1"},
+    {"map_name": "Ascent", "team1_win_prob": 0.55, "team1_win_prob_hdi": [0.47, 0.63], "picked_by": "team2"}
   ],
+  "team1_win_prob": 0.62,
+  "team1_win_prob_hdi": [0.54, 0.69],
   "top_factors": [
     {"factor": "Elo difference", "weight": 0.45, "favors": "team1"},
-    {"factor": "Map advantage (Bind)", "weight": 0.20, "favors": "team1"},
+    {"factor": "Player skill", "weight": 0.22, "favors": "team1"},
     {"factor": "Recent form", "weight": 0.15, "favors": "team1"}
   ]
 }
 ```
 
+Notes:
+- **`series_win_prob`** is *derived, not modeled*: each map is treated as an independent Bernoulli(p) and the Bo-N series win prob is computed in closed form. Upcoming mode (no veto) uses one team-strength `p` for every map.
+- **`top_factors`** is an *interpretable attribution* (posterior-mean coefficient × standardized feature value per feature, ranked by magnitude; `favors` = sign relative to team1) — not exact Shapley. The natural-language explanation is a separate Phase-7 LLM call (`POST /api/llm/explain`).
+- **`*_hdi`** is the highest-density credible interval of the posterior probability (SPEC §6.1 — surface uncertainty, not just a point estimate).
+- Upcoming mode returns `"mode": "upcoming"`, `"map_predictions": []`, and no `match_id`.
+
 #### `GET /api/predict/live`
-Returns the current live prediction. Auto-detects which live match to track per D3.
+Returns the current live prediction. **Reads the `live_state` + `live_predictions` tables** written by the P5 live poller (`scheduler/jobs/live_poll.py`); the API does not poll vlrggapi itself for this. The poller must be running for live data to appear (full scheduler wiring is Phase 8). `current_map_index` selects the tracked map's latest `live_predictions` row.
 ```json
 {
   "mode": "live",
@@ -332,7 +346,7 @@ Returns the current live prediction. Auto-detects which live match to track per 
   "probability_history": [{"round": 1, "prob": 0.55}, ...]
 }
 ```
-If no tier-1 match is live: `{"mode": "no_live", "next_prx_match": {...}}`.
+If `live_state` is empty (no tier-1 match live): `{"mode": "no_live", "next_prx_match": {...}}`, where `next_prx_match` is sourced from vlrggapi upcoming (same source as `/api/matches/upcoming`).
 
 #### `GET /api/predict/replay?match_id={id}`
 Returns the round-by-round retrospective trace for a completed match.
@@ -372,7 +386,7 @@ Tier-1 events.
 #### `GET /api/matches/upcoming?team_id={id}`
 Next scheduled match(es) for a team.
 
-### 3.3 LLM endpoints
+### 3.3 LLM endpoints *(Phase 7 — not implemented in the Phase 6 backend)*
 
 #### `POST /api/llm/explain`
 ```json
@@ -464,18 +478,40 @@ api → llm.deepseek_client (with schema context) → SQL string
 - Score-state lookup: re-computed weekly along with model retrain
 - Player skills: appended after every new match ingestion
 
-### 5.3 Prediction call signature
+### 5.3 Prediction call signatures
+
+The core predictor returns a bare **`float`** (P(team1 wins the map)); the live poller (Phase 5) depends on this. The API layer composes `top_factors` + a credible interval separately (the earlier `Prediction(...)` object was never built).
+
 ```python
 def predict_map_win_prob(
     match_id: int,
     map_index: int,
-    live_state: LiveState | None = None
-) -> Prediction:
+    live_state: dict | None = None,
+    *, db_path: str = "data/prx.db",
+) -> float:
     """
-    Returns Prediction(team1_win_prob: float, top_factors: list[Factor], confidence: float).
-    If live_state is None: pre-match prediction (Bambi prior only).
-    If live_state is provided: Bayesian update combining prior with score_state likelihood.
+    P(team1 wins the map), in [0, 1].
+    live_state is None  -> pre-match prediction (Bambi prior only).
+    live_state provided -> log-odds pool of the prior with the score_state likelihood.
+    live_state shape (team1's perspective):
+        {"half": "second", "team1_score": 9, "team2_score": 3, "team1_side": "ct"}
     """
+```
+
+The API uses two thin composition helpers (Phase 6) over the same cached resources:
+
+```python
+# models/predict.py — for the pre-match / replay panels
+def predict_map_win_prob_detailed(match_id, map_index, *, db_path=...) -> dict:
+    """{'team1_win_prob': float, 'hdi': [lo, hi], 'top_factors': [{factor, weight, favors}, ...]}.
+    hdi = highest-density interval of the posterior p; top_factors = coef × standardized
+    feature value per term (interpretable attribution, not exact Shapley)."""
+
+# models/upcoming.py — for the pre-match panel on an UNPLAYED match (D3 default view)
+def predict_upcoming_win_prob(team1_id, team2_id, *, as_of_date=None, db_path=...) -> dict:
+    """As-of-now team-strength prediction from snapshot tables (latest elo_ratings,
+    current-roster player_skill, recent form, H2H). Returns the same dict shape as
+    predict_map_win_prob_detailed (map_elo/side neutral until veto)."""
 ```
 
 ---

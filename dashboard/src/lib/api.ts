@@ -131,6 +131,23 @@ export interface TeamScouting {
 }
 export const getTeamScouting = (id: number) => http.get<TeamScouting>(`/api/teams/${id}/scouting`).then((r) => r.data)
 
+// --- head-to-head matchup ---------------------------------------------------
+export interface MapEdgeRow { map_name: string; t1_win_rate: number | null; t1_n: number; t2_win_rate: number | null; t2_n: number }
+export interface KeyDuel { t1_player: string; t2_player: string; kills: number; deaths: number; net: number }
+export interface Matchup {
+  team1: TeamBrief; team2: TeamBrief
+  prediction: Prediction
+  prx_side: 'team1' | 'team2' | null
+  prematch_insight: Insight
+  map_edge: MapEdgeRow[]
+  veto1: { n_matches: number; bans: VetoRow[]; picks: VetoRow[] }
+  veto2: { n_matches: number; bans: VetoRow[]; picks: VetoRow[] }
+  comps1: CompRow[]; comps2: CompRow[]
+  key_duels: KeyDuel[]
+}
+export const getMatchup = (t1: number, t2: number) =>
+  http.get<Matchup>('/api/matchup', { params: { team1_id: t1, team2_id: t2 } }).then((r) => r.data)
+
 export const getHome = () => http.get<Home>('/api/home').then((r) => r.data)
 export const getMatch = (id: number) => http.get<MatchView>(`/api/matches/${id}`).then((r) => r.data)
 export const getPlayer = (id: number) => http.get<PlayerView>(`/api/players/${id}`).then((r) => r.data)

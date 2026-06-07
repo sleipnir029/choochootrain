@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from api.deps import db_path
-from api.routes import events, home, matches, model, players, predict, teams
+from api.routes import events, home, matches, matchup, model, players, predict, teams
 
 logger = structlog.get_logger(__name__)
 
@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for module in (home, predict, teams, players, events, matches, model):
+for module in (home, predict, teams, players, events, matches, model, matchup):
     app.include_router(module.router)
 
 

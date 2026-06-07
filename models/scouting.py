@@ -218,6 +218,52 @@ def player_duels(conn, player_handle, *, n_matches=25, min_duels=12, top=5):
     return {"best": duels[:top], "worst": list(reversed(duels[-top:])) if len(duels) > top else []}
 
 
+def _recent_handles(conn, team_id, map_ids):
+    if not map_ids:
+        return []
+    q = ",".join("?" * len(map_ids))
+    return [r[0] for r in conn.execute(
+        f"SELECT DISTINCT player_handle FROM map_player_stats "
+        f"WHERE team_id_at_match = ? AND map_id IN ({q})", [team_id, *map_ids]).fetchall()]
+
+
+def head_to_head(conn, team1_id, team2_id, *, window=WINDOW):
+    """Analyst pre-match overlay: map edge, veto tendencies, comps, and the marquee
+    cross-roster player duels (from the kill matrix) between the two teams (tier-2)."""
+    s1 = team_scouting(conn, team1_id, window=window)
+    s2 = team_scouting(conn, team2_id, window=window)
+    p1 = {m["map_name"]: m for m in s1["map_pool"]}
+    p2 = {m["map_name"]: m for m in s2["map_pool"]}
+    map_edge = []
+    for name in sorted(set(p1) | set(p2), key=lambda m: -(p1.get(m, {}).get("n", 0) + p2.get(m, {}).get("n", 0))):
+        a, b = p1.get(name, {}), p2.get(name, {})
+        map_edge.append({"map_name": name,
+                         "t1_win_rate": a.get("win_rate"), "t1_n": a.get("n", 0),
+                         "t2_win_rate": b.get("win_rate"), "t2_n": b.get("n", 0)})
+
+    # Marquee duels: every time a team1 player has faced a team2 player (any match).
+    h1 = _recent_handles(conn, team1_id, _recent_map_ids(conn, team1_id, window))
+    h2 = _recent_handles(conn, team2_id, _recent_map_ids(conn, team2_id, window))
+    key_duels = []
+    if h1 and h2:
+        q1, q2 = ",".join("?" * len(h1)), ",".join("?" * len(h2))
+        rows = conn.execute(
+            f"""SELECT player_handle, opponent_handle, SUM(kills) k, SUM(deaths) d
+                FROM match_player_duels
+                WHERE player_handle IN ({q1}) AND opponent_handle IN ({q2})
+                GROUP BY player_handle, opponent_handle HAVING (k + d) >= 10
+                ORDER BY ABS(k - d) DESC""", [*h1, *h2]).fetchall()
+        key_duels = [{"t1_player": r["player_handle"], "t2_player": r["opponent_handle"],
+                      "kills": r["k"], "deaths": r["d"], "net": r["k"] - r["d"]} for r in rows[:12]]
+
+    return {
+        "map_edge": map_edge,
+        "veto1": s1["veto"], "veto2": s2["veto"],
+        "comps1": s1["agents"]["comps_by_map"], "comps2": s2["agents"]["comps_by_map"],
+        "key_duels": key_duels,
+    }
+
+
 def team_scouting(conn, team_id, *, window=WINDOW):
     """Full scouting report for a team over its most recent ``window`` maps."""
     map_ids = _recent_map_ids(conn, team_id, window)

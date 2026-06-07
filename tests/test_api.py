@@ -208,6 +208,18 @@ def test_track_record(client):
 
 
 @needs_model
+def test_matchup(client):
+    pytest.importorskip("bambi")
+    body = client.get("/api/matchup?team1_id=624&team2_id=14").json()  # PRX vs T1
+    assert 0.0 < body["prediction"]["team1_win_prob"] < 1.0
+    assert body["prematch_insight"]["headline"]
+    assert body["map_edge"] and "t1_win_rate" in body["map_edge"][0]
+    # cross-roster duels carry both players + a net.
+    if body["key_duels"]:
+        assert {"t1_player", "t2_player", "net"} <= set(body["key_duels"][0])
+
+
+@needs_model
 def test_match_view_insight(client):
     pytest.importorskip("bambi")
     mid = _prx_match_id()

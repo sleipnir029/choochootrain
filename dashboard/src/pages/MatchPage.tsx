@@ -71,8 +71,11 @@ export function MatchPage() {
           </span>
           <Link to={`/team/${d.team2.id}`} className="team-name t2">{t2}</Link>
         </div>
-        <div className="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
+        <div className="muted" style={{ textAlign: 'center', marginBottom: 6 }}>
           {[d.event, d.series_name, d.date].filter(Boolean).join(' · ')}
+        </div>
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <Link to={`/matchup/${d.team1.id}/${d.team2.id}`}>Scout this matchup →</Link>
         </div>
 
         {d.completed && <Insight insight={d.postmatch_insight} />}

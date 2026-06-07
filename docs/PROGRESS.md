@@ -175,6 +175,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Head-to-head matchup prep view (the analyst's pre-match overlay)
+
+**Done:** `models/scouting.head_to_head` + `GET /api/matchup?team1_id=&team2_id=` + a `/matchup/:t1/:t2` page combining: the model's prediction + confidence + narrative, a **map-edge table** (both teams' win% per map → which maps to pick/ban), **veto tendencies side by side**, and the marquee **cross-roster player duels** (from the match-level kill matrix — every time a team1 player faced a team2 player). Reachable via "Scout this matchup →" on any match page (or `/matchup/624/14`).
+
+**Learned or surprised:** Genuinely actionable, face-valid intel for PRX vs T1: pick **Split (PRX 83% vs T1 33%, +50)** and Lotus (+33), ban Pearl/Haven/Ascent (T1's maps); Jinggg dominates stax (75-41) and invy owns Meteor (70-41), but **f0rsakeN is *down* to Meteor (97-112)** — the single matchup to watch. This map-edge + duel + veto overlay is what an analyst builds by hand.
+
+**Verification:** `/api/matchup?team1_id=624&team2_id=14` returns prediction + map_edge + key_duels + veto; **Playwright** matchup page renders all sections, 0 console errors; full suite **161 passed** (+1).
+
+**Files touched:**
+- `models/scouting.py` (`head_to_head`), `api/routes/matchup.py` (created), `api/main.py`
+- `dashboard/src/pages/MatchupPage.tsx` (created), `App.tsx`, `lib/api.ts`, `pages/MatchPage.tsx`
+- `tests/test_api.py` (+matchup), `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `decision-grade.scouting: head-to-head matchup prep view`
+
 ### 2026-06-07 — Scouting tier-2 — re-ingest the dropped match-details data
 
 **Done:** Captured the rich scouting data the original ingestion dropped. Extended `ingestion/match_details.py` (parse kill matrix, advanced stats, map veto) + `scripts/reingest_details.py` (re-ingest from cache into 3 new match-level tables: `match_player_duels`, `match_player_advanced`, `match_veto`; idempotent, per-match savepoint + veto tag backfill). Surfaced: **player duel matrix** (best/worst head-to-head opponents), **team veto tendencies** (most banned/picked maps), **round impact** (clutches + multikills). Re-ingested **1098/1258 matches** (rest rate-limited cache misses).

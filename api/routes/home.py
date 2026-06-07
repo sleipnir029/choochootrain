@@ -71,7 +71,7 @@ def _next_hero(conn, segment):
             "team1_win_prob_hdi": [round(x, 4) for x in d["hdi"]],
             "map_predictions": [], "top_factors": d["top_factors"]}
     return {"kind": "next", "schedule": segment, "prediction": pred,
-            "insight": insight.prematch_insight(pred, "team1")}
+            "insight": insight.prematch_insight(pred, "team1", subject="PRX")}
 
 
 def _recent_hero(conn):

@@ -30,10 +30,14 @@ def matchup(team1_id: int, team2_id: int, conn=Depends(get_conn)):
         "map_predictions": [], "top_factors": d["top_factors"],
     }
     side = compute.prx_side(team1_id, team2_id)
+    subject_side = side or "team1"
+    subject = "PRX" if side else (pred["team1"].get("name") or "Team 1")
+    subject_team_id = PRX_TEAM_ID if side else team1_id
     return {
         "team1": pred["team1"], "team2": pred["team2"],
         "prediction": pred,
         "prx_side": side,
-        "prematch_insight": insight.prematch_insight(pred, side or "team1"),
+        "prematch_insight": insight.prematch_insight(
+            pred, subject_side, subject=subject, subject_team_id=subject_team_id),
         **head_to_head(conn, team1_id, team2_id),
     }

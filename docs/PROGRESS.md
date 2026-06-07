@@ -175,6 +175,18 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Fix PRX-hardcoded matchup framing (non-PRX matchups + colour/side mismatch)
+
+**Done:** Generalized the templated narrative composer off its PRX hardcoding so any matchup is framed around the *actual* teams. `api/insight.py`: `prematch_insight`/`postmatch_insight` now take `subject`/`subject_team_id` (defaulting to PRX), mirroring the existing `live_insight(subject=…)` pattern — every hardcoded `"PRX"` literal and the `PRX_TEAM_ID` watch-player filter now use the subject. Call-sites derive the subject from the real teams: `api/routes/matchup.py` (two non-PRX teams → frame around team1), `api/compute.match_view` (non-PRX *ingested* matches now get pre/post-match insight at all, framed on team1), `api/routes/home._next_hero` (explicit `subject="PRX"`). Root cause was the `side or "team1"` fallback narrating any non-PRX team1 as PRX.
+
+**Learned or surprised:** The dashboard was never the problem — `MatchupPage`/`WinProbBar` are already team-agnostic (team1=blue/`t1`, team2=red/`t2`, bar = `team1_win_prob`). The "blue-to-win-as-PRX" mismatch was purely the backend insight text disagreeing with the (correct) bar. Backend-only fix; zero dashboard changes, no schema change, no new deps. `MatchPage` already falls back to `prx_side ?? 'team1'`, so it now agrees with the backend's team1 framing for non-PRX matches.
+
+**Verification:** unit check — non-PRX `prematch_insight`/`postmatch_insight` name the subject, no `"PRX"` leak in headline or points; PRX default preserved; team2-subject underdog framing correct. End-to-end via TestClient: `GET /api/matchup` for **G2 vs NRG** → "G2 Esports are favoured — 60% to win the map vs NRG" (`prx_side: null`, favourite matches `team1_win_prob` 0.604); PRX vs G2 still PRX-framed. Full `tests/test_api.py` **20 passed**.
+
+**Files touched:** `api/insight.py`, `api/routes/matchup.py`, `api/compute.py`, `api/routes/home.py`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `fix.matchup: frame non-PRX matchups around actual teams (drop PRX hardcoding)`
+
 ### 2026-06-07 — Head-to-head matchup prep view (the analyst's pre-match overlay)
 
 **Done:** `models/scouting.head_to_head` + `GET /api/matchup?team1_id=&team2_id=` + a `/matchup/:t1/:t2` page combining: the model's prediction + confidence + narrative, a **map-edge table** (both teams' win% per map → which maps to pick/ban), **veto tendencies side by side**, and the marquee **cross-roster player duels** (from the match-level kill matrix — every time a team1 player faced a team2 player). Reachable via "Scout this matchup →" on any match page (or `/matchup/624/14`).

@@ -142,6 +142,12 @@ def match_view(conn, match_id, db_path):
     expected = expected_records(match_id, db_path)
     completed = m["winner_id"] is not None
 
+    # Frame around PRX when PRX is playing; otherwise the actual team1 (a non-PRX tier-1
+    # match shouldn't be narrated as PRX). subject_side is never None.
+    subject_side = side or "team1"
+    subject = "PRX" if side else (pred["team1"].get("name") or "Team 1")
+    subject_team_id = PRX_TEAM_ID if side else m["team1_id"]
+
     out = {
         "match_id": match_id,
         "completed": completed,
@@ -160,19 +166,21 @@ def match_view(conn, match_id, db_path):
             "map_predictions": pred["map_predictions"],
             "top_factors": pred["top_factors"],
         },
-        "prematch_insight": insight.prematch_insight(pred, side, expected=expected) if side else None,
+        "prematch_insight": insight.prematch_insight(
+            pred, subject_side, subject=subject, subject_team_id=subject_team_id,
+            expected=expected),
         "expected_stats": expected,
     }
 
     if completed:
         maps = build_replay(conn, match_id, m["team1_id"], db_path)
-        swing = insight.biggest_swing(maps, side) if side else None
-        prx_p = pred["team1_win_prob"] if side == "team1" else 1 - pred["team1_win_prob"]
+        swing = insight.biggest_swing(maps, subject_side)
+        subject_p = pred["team1_win_prob"] if subject_side == "team1" else 1 - pred["team1_win_prob"]
         out["replay"] = maps
         out["biggest_swing"] = swing
-        out["postmatch_insight"] = (
-            insight.postmatch_insight(prx_p, m["winner_id"] == PRX_TEAM_ID,
-                                      expected=expected, swing=swing) if side else None)
+        out["postmatch_insight"] = insight.postmatch_insight(
+            subject_p, m["winner_id"] == subject_team_id,
+            subject=subject, subject_team_id=subject_team_id, expected=expected, swing=swing)
     return out
 
 

@@ -28,52 +28,55 @@ def _prx_prob(team1_prob, prx_side):
     return team1_prob if prx_side == "team1" else 1.0 - team1_prob
 
 
-def prematch_insight(pred, prx_side, *, expected=None):
-    """What might happen. ``pred`` = a /api/predict/pre-match dict; ``expected`` =
-    list of {handle, team_id, expected_acs} for the watch-player call."""
-    prx_p = _prx_prob(pred["team1_win_prob"], prx_side)
-    opp = (pred["team2"] if prx_side == "team1" else pred["team1"]).get("name") or "the opponent"
-    pc = _pct(prx_p)
-    tone = "favourite" if prx_p >= 0.6 else "underdog" if prx_p <= 0.4 else "coinflip"
+def prematch_insight(pred, subject_side, *, subject=PRX, subject_team_id=PRX_TEAM_ID,
+                     expected=None):
+    """What might happen, framed around ``subject`` (PRX when PRX is playing; otherwise the
+    actual team so a non-PRX matchup isn't mislabelled). ``pred`` = a /api/predict/pre-match
+    dict; ``subject_side`` is which side of the row the subject is ('team1'/'team2');
+    ``expected`` = list of {handle, team_id, expected_acs} for the watch-player call."""
+    sub_p = _prx_prob(pred["team1_win_prob"], subject_side)
+    opp = (pred["team2"] if subject_side == "team1" else pred["team1"]).get("name") or "the opponent"
+    pc = _pct(sub_p)
+    tone = "favourite" if sub_p >= 0.6 else "underdog" if sub_p <= 0.4 else "coinflip"
     headline = {
-        "favourite": f"{PRX} are favoured — {pc}% to win the map vs {opp}",
-        "underdog": f"{PRX} are underdogs — {pc}% to win the map vs {opp}",
-        "coinflip": f"{PRX} vs {opp}: too close to call ({pc}%)",
+        "favourite": f"{subject} are favoured — {pc}% to win the map vs {opp}",
+        "underdog": f"{subject} are underdogs — {pc}% to win the map vs {opp}",
+        "coinflip": f"{subject} vs {opp}: too close to call ({pc}%)",
     }[tone]
 
     points = []
     hdi = pred.get("team1_win_prob_hdi")
     if hdi:
-        lo, hi = (hdi if prx_side == "team1" else [1 - hdi[1], 1 - hdi[0]])
+        lo, hi = (hdi if subject_side == "team1" else [1 - hdi[1], 1 - hdi[0]])
         points.append(f"Confidence: {pc}% to win the map (likely {_pct(lo)}–{_pct(hi)}%).")
 
     facts = [f for f in pred.get("top_factors", []) if f["factor"] in _NARRATIVE_FACTORS][:2]
-    prx_favs = [f["factor"].lower() for f in facts
-                if (f["favors"] == "team1") == (prx_side == "team1")]
+    sub_favs = [f["factor"].lower() for f in facts
+                if (f["favors"] == "team1") == (subject_side == "team1")]
     opp_favs = [f["factor"].lower() for f in facts
-                if (f["favors"] == "team1") != (prx_side == "team1")]
-    if prx_favs:
-        points.append(f"In PRX's favour: {' and '.join(prx_favs)}.")
+                if (f["favors"] == "team1") != (subject_side == "team1")]
+    if sub_favs:
+        points.append(f"In {subject}'s favour: {' and '.join(sub_favs)}.")
     if opp_favs:
         points.append(f"Going {opp}'s way: {' and '.join(opp_favs)}.")
 
     sp = pred.get("series_win_prob")
     if sp:
-        prx_series = sp["team1"] if prx_side == "team1" else sp["team2"]
-        points.append(f"Series ({pred.get('series_format', 'Bo3')}): {_pct(prx_series)}% to take it.")
+        sub_series = sp["team1"] if subject_side == "team1" else sp["team2"]
+        points.append(f"Series ({pred.get('series_format', 'Bo3')}): {_pct(sub_series)}% to take it.")
 
     mps = pred.get("map_predictions") or []
     if mps:
-        def mp_prx(m):
-            return _prx_prob(m["team1_win_prob"], prx_side)
-        closest = min(mps, key=lambda m: abs(mp_prx(m) - 0.5))
-        points.append(f"Closest map: {closest['map_name']} ({_pct(mp_prx(closest))}% PRX).")
+        def mp_sub(m):
+            return _prx_prob(m["team1_win_prob"], subject_side)
+        closest = min(mps, key=lambda m: abs(mp_sub(m) - 0.5))
+        points.append(f"Closest map: {closest['map_name']} ({_pct(mp_sub(closest))}% {subject}).")
 
     if expected:
-        prx_exp = [e for e in expected
-                   if e["team_id"] == PRX_TEAM_ID and e.get("expected_acs")]
-        if prx_exp:
-            top = max(prx_exp, key=lambda e: e["expected_acs"])
+        sub_exp = [e for e in expected
+                   if e["team_id"] == subject_team_id and e.get("expected_acs")]
+        if sub_exp:
+            top = max(sub_exp, key=lambda e: e["expected_acs"])
             points.append(f"Watch {top['handle']} — expected ~{round(top['expected_acs'])} ACS.")
 
     return {"headline": headline, "points": points, "tone": tone}
@@ -97,23 +100,25 @@ def biggest_swing(maps, prx_side):
     return best
 
 
-def postmatch_insight(prx_prob, prx_won, *, expected=None, swing=None):
-    """What actually happened. ``prx_prob`` = pre-match P(PRX); ``expected`` = list of
-    {handle, team_id, expected_acs, actual_acs}; ``swing`` = biggest_swing() output."""
-    pc = _pct(prx_prob)
-    correct = (prx_prob > 0.5) == prx_won
-    result = "won" if prx_won else "lost"
-    if abs(prx_prob - 0.5) < 0.05:
-        headline, tone = f"A coin-flip on paper ({pc}%) — {PRX} {result}.", "coinflip"
+def postmatch_insight(subject_prob, subject_won, *, subject=PRX, subject_team_id=PRX_TEAM_ID,
+                      expected=None, swing=None):
+    """What actually happened, framed around ``subject``. ``subject_prob`` = pre-match
+    P(subject); ``expected`` = list of {handle, team_id, expected_acs, actual_acs};
+    ``swing`` = biggest_swing() output."""
+    pc = _pct(subject_prob)
+    correct = (subject_prob > 0.5) == subject_won
+    result = "won" if subject_won else "lost"
+    if abs(subject_prob - 0.5) < 0.05:
+        headline, tone = f"A coin-flip on paper ({pc}%) — {subject} {result}.", "coinflip"
     else:
-        headline = f"Model gave {PRX} {pc}% — they {result} {'✓' if correct else '✗'}."
+        headline = f"Model gave {subject} {pc}% — they {result} {'✓' if correct else '✗'}."
         tone = "expected" if correct else "upset"
 
     points = []
     if expected:
-        prx = [e for e in expected if e["team_id"] == PRX_TEAM_ID
+        sub = [e for e in expected if e["team_id"] == subject_team_id
                and e.get("actual_acs") is not None and e.get("expected_acs") is not None]
-        deltas = [(e, e["actual_acs"] - e["expected_acs"]) for e in prx]
+        deltas = [(e, e["actual_acs"] - e["expected_acs"]) for e in sub]
         if deltas:
             over_e, over_d = max(deltas, key=lambda d: d[1])
             under_e, under_d = min(deltas, key=lambda d: d[1])
@@ -124,7 +129,7 @@ def postmatch_insight(prx_prob, prx_won, *, expected=None, swing=None):
                 points.append(f"{under_e['handle']} off the pace: {round(under_e['actual_acs'])} "
                               f"vs ~{round(under_e['expected_acs'])} expected ({round(under_d)}).")
     if swing:
-        side = "PRX" if swing["delta"] >= 0 else "the opponent"
+        side = subject if swing["delta"] >= 0 else "the opponent"
         points.append(f"Biggest swing: {swing['map_name']} round {swing['round']} "
                       f"({'+' if swing['delta'] >= 0 else ''}{_pct(swing['delta'])}pt for {side}).")
     return {"headline": headline, "points": points, "tone": tone}

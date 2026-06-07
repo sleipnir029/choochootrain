@@ -211,15 +211,22 @@ def _top_factors(idata, row_df, df_train, *, n=4):
 
 
 def detailed_from_row(model, idata, row_df, df_train, *, n_factors=4, hdi_prob=0.94):
-    """{'team1_win_prob', 'hdi': [lo, hi], 'top_factors'} for a single feature row."""
+    """{'team1_win_prob' (calibrated), 'hdi', 'top_factors', 'confidence'} for a row."""
     import arviz as az
+
+    from models.backtest import confidence_tier
+    from models.calibration import calibrate
 
     pred = model.predict(idata, data=row_df, inplace=False, sample_new_groups=True)
     samples = pred.posterior["p"].values.reshape(-1)
     lo, hi = az.hdi(samples, hdi_prob=hdi_prob)
+    raw = float(samples.mean())
+    row = row_df.iloc[0]
     return {
-        "team1_win_prob": float(samples.mean()),
+        "team1_win_prob": calibrate(raw),          # identity unless a calibration map is fit
+        "team1_win_prob_raw": raw,
         "hdi": [float(lo), float(hi)],
+        "confidence": confidence_tier(row.get("elo_diff", 0.0), row.get("tier")),
         "top_factors": _top_factors(idata, row_df, df_train, n=n_factors),
     }
 

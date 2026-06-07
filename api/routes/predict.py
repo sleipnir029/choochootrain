@@ -70,7 +70,7 @@ def _pre_match_ingested(conn, match_id: int):
     if not maps:
         raise HTTPException(status_code=404, detail=f"match {match_id} has no ingested maps")
 
-    map_predictions, probs, his, top_factors = [], [], [], []
+    map_predictions, probs, his, top_factors, confidence = [], [], [], [], None
     for mp in maps:
         try:
             d = predict_map_win_prob_detailed(match_id, mp["map_index"], db_path=db_path())
@@ -80,6 +80,7 @@ def _pre_match_ingested(conn, match_id: int):
         his.append(d["hdi"])
         if not top_factors:
             top_factors = d["top_factors"]
+            confidence = d.get("confidence")
         map_predictions.append({
             "map_name": mp["map_name"],
             "team1_win_prob": round(d["team1_win_prob"], 4),
@@ -101,6 +102,7 @@ def _pre_match_ingested(conn, match_id: int):
         "series_win_prob": {"team1": round(p_series, 4), "team2": round(1 - p_series, 4)},
         "team1_win_prob": round(p_mean, 4),
         "team1_win_prob_hdi": hdi,
+        "confidence": confidence,
         "map_predictions": map_predictions,
         "top_factors": top_factors,
     }
@@ -120,6 +122,7 @@ def _pre_match_upcoming(conn, team1_id: int, team2_id: int, event_id):
         "series_win_prob": {"team1": round(p_series, 4), "team2": round(1 - p_series, 4)},
         "team1_win_prob": round(p, 4),
         "team1_win_prob_hdi": [round(x, 4) for x in d["hdi"]],
+        "confidence": d.get("confidence"),
         "map_predictions": [],
         "top_factors": d["top_factors"],
     }

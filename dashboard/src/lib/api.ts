@@ -12,10 +12,12 @@ export interface Factor { factor: string; weight: number; favors: 'team1' | 'tea
 export interface MapPrediction {
   map_name: string; team1_win_prob: number; team1_win_prob_hdi: [number, number]; picked_by: number | null
 }
+export type Confidence = 'sharp' | 'lean' | 'coinflip'
 export interface Prediction {
   team1_win_prob: number
   team1_win_prob_hdi: [number, number] | null
   series_win_prob: { team1: number; team2: number }
+  confidence?: Confidence | null
   map_predictions: MapPrediction[]
   top_factors: Factor[]
 }
@@ -87,6 +89,24 @@ export interface PlayerView {
 export type Live = { mode: 'live'; [k: string]: unknown } | { mode: 'no_live'; [k: string]: unknown }
 
 // --- calls ------------------------------------------------------------------
+// --- model trust / track record --------------------------------------------
+export interface RegimeAgg {
+  tier?: string; confidence?: Confidence; bucket?: string
+  n: number; acc: number; brier: number; elo_sign_acc?: number; logloss?: number
+}
+export interface ReliabilityPoint { bin: number; predicted: number; actual: number; n: number }
+export interface RecentCall {
+  match_id: number; date_utc: string; tier: string
+  team1_win_prob: number; team1_won: number; correct: number; confidence: Confidence
+}
+export interface TrackRecord {
+  available: boolean; reason?: string
+  overall?: { n: number; acc: number; elo_sign_acc: number; brier: number; logloss: number }
+  by_tier?: RegimeAgg[]; by_confidence?: RegimeAgg[]; by_elo_bucket?: RegimeAgg[]
+  reliability?: ReliabilityPoint[]; recent?: RecentCall[]
+}
+export const getTrackRecord = () => http.get<TrackRecord>('/api/model/track-record').then((r) => r.data)
+
 export const getHome = () => http.get<Home>('/api/home').then((r) => r.data)
 export const getMatch = (id: number) => http.get<MatchView>(`/api/matches/${id}`).then((r) => r.data)
 export const getPlayer = (id: number) => http.get<PlayerView>(`/api/players/${id}`).then((r) => r.data)

@@ -175,6 +175,24 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Decision-grade Wave A — calibration + track-record + confidence
+
+**Done:** Started the decision-grade program. `models/calibration.py` (measure + recalibrate only if it helps), `models/backtest.py` + `prediction_log` (walk-forward out-of-sample track record + regime map), confidence tier wired into the prediction path (`predict.detailed_from_row`), `GET /api/model/track-record`, and a **"Model trust"** dashboard page (reliability curve + sharp/coinflip table + recent calls) with a confidence chip on match cards.
+
+**Learned or surprised (the key results):**
+- **The model is already well-calibrated** (overall ECE 0.013); isotonic recalibration makes OOS Brier slightly *worse* → `calibrate()` is the identity (honest: no forced recalibration).
+- **It's a coinflip on most maps but sharp where it matters:** by confidence tier **sharp 73.7% / lean 62.1% / coinflip 55.5%**; the edge lives almost entirely in the ~5% of maps with `|elo_diff| ≥ 150` (74% acc, Brier 0.19). This is the regime Wave B will bet.
+
+**Verification:** `python -m models.calibration` (ECE 0.013, identity, no map saved); `python -m models.backtest` (regime table, wrote prediction_log 1816 rows); `/api/model/track-record` returns the regimes + reliability; **Playwright** Model-trust page renders (reliability scatter on the diagonal), 0 console errors; full suite **154 passed** (+9: calibration/backtest/track-record).
+
+**Files touched:**
+- `models/calibration.py`, `models/backtest.py`, `api/routes/model.py` (created); `models/predict.py`, `api/routes/predict.py`, `api/main.py` (modified)
+- `dashboard/src/pages/ModelTrustPage.tsx` (created); `App.tsx`, `lib/api.ts`, `pages/MatchPage.tsx`, `index.css` (modified)
+- `ingestion/schema.py` + `docs/ARCHITECTURE.md` (`prediction_log`), `.gitignore` (calibration.json)
+- `tests/test_calibration.py`, `tests/test_backtest.py` (created), `tests/test_api.py` (+track-record); `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `decision-grade.wave-a: calibration + track-record + confidence tiers`
+
 ### 2026-06-07 — Live prediction gap closed (wire live path → upcoming builder)
 
 **Done:** Rahat asked to "wire the live path to the upcoming-feature builder" so a real **un-ingested** live match gets a win-prob (not just a tracked score). Added `models.predict.predict_live_win_prob` (ingested path, else upcoming-prior + score-state pool, prior cached per match). The poller now resolves the live segment's team names → `team_id`s and stores them in `live_state` (new nullable `team1_id/team2_id` columns); `make_prediction_callback` uses the new function. The home `_live_hero` reads those ids so an un-ingested live match is PRX-framed correctly.

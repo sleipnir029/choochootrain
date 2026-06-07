@@ -57,6 +57,23 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Decision-grade Wave A: calibration is already good; value is the regime map; `prediction_log` added
+
+**Phase / Task:** Decision-grade analytics, Wave A
+
+**What was found / done:**
+Building the betting-grade core, the honest result on the recalibration step: **the model is already well-calibrated** (overall holdout ECE **0.013**; reliability bins predicted≈actual). An isotonic recalibration **does not improve** out-of-sample Brier (0.2388 → 0.2407, slightly worse — it overfits), so `models.calibration` only persists a map if it *demonstrably* helps; here it saves nothing and `calibrate()` stays the **identity**. (Don't manufacture confidence.)
+
+The real deliverable is the **regime map** from `models.backtest` (`prediction_log`): the model is a coinflip on most maps but **genuinely sharp where there's a big Elo gap** — by confidence tier, **sharp 73.7% (n=99, Brier 0.191) / lean 62.1% / coinflip 55.5%**; by |elo_diff|, 0–50→53%, 100–150→66%, 150–250→**74%**. So a `confidence_tier(elo_diff, tier)` (sharp ≥150 Elo, lean ≥75, elite events downgraded) now rides on every prediction, and `GET /api/model/track-record` + a "Model trust" dashboard page surface calibration + the sharp-vs-coinflip map honestly.
+
+**Schema add (minor):** `prediction_log` (out-of-sample track record; built by `python -m models.backtest`, regenerable) — `ingestion/schema.py` + ARCHITECTURE §2.4. `models/saved/calibration.json` is gitignored (regenerable, and usually absent since calibration is identity).
+
+**Impact:** No accuracy change (calibration was the lever, and it's already good). Predictions now carry a `confidence` tier; the dashboard tells the user where to trust the model. Sets up Wave B (edge/EV only on the *sharp* regime).
+
+**Rahat approval:** yes (chose decision-grade focus).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-07 — Live prediction wired to the upcoming-feature builder; live_state gains team ids
 
 **Phase / Task:** P6 revision (closes the live-prediction gap flagged since P3.T7 / P5.T3)

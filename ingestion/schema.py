@@ -203,6 +203,20 @@ CREATE TABLE IF NOT EXISTS score_state_lookup (
     PRIMARY KEY (half, team_score, opp_score, side)
 );
 
+-- Out-of-sample track record (decision-grade): one row per post-cutoff map with the
+-- prediction the model would have made pre-match. Built by `python -m models.backtest`.
+CREATE TABLE IF NOT EXISTS prediction_log (
+    map_id INTEGER PRIMARY KEY,
+    match_id INTEGER NOT NULL,
+    date_utc TEXT NOT NULL,
+    tier TEXT,
+    elo_diff REAL,
+    team1_win_prob REAL NOT NULL,                 -- calibrated P(team1 wins the map)
+    team1_won INTEGER NOT NULL,
+    correct INTEGER NOT NULL,                     -- (prob>0.5) == team1_won
+    confidence TEXT NOT NULL                      -- 'sharp' | 'lean' | 'coinflip'
+);
+
 -- 2.5 Live state tables -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS live_state (
     -- Singleton table; max 1 row per currently-tracked live match

@@ -184,6 +184,19 @@ def test_home(client):
     assert all("model_correct" in r for r in body["recent"])
 
 
+def test_track_record(client):
+    # Light: reads prediction_log (built by models.backtest). Handles both states.
+    body = client.get("/api/model/track-record").json()
+    assert "available" in body
+    if body["available"]:
+        assert body["overall"]["n"] > 0
+        confs = {r["confidence"] for r in body["by_confidence"]}
+        assert confs and confs <= {"sharp", "lean", "coinflip"}
+        assert body["reliability"]
+    else:
+        assert "reason" in body
+
+
 @needs_model
 def test_match_view_insight(client):
     pytest.importorskip("bambi")

@@ -255,6 +255,20 @@ CREATE TABLE score_state_lookup (
     smoothed_win_pct REAL NOT NULL,               -- with Laplace smoothing
     PRIMARY KEY (half, team_score, opp_score, side)
 );
+
+-- Decision-grade Wave A: out-of-sample track record, one row per post-cutoff map.
+-- Built by `python -m models.backtest`; read by GET /api/model/track-record.
+CREATE TABLE prediction_log (
+    map_id INTEGER PRIMARY KEY,
+    match_id INTEGER NOT NULL,
+    date_utc TEXT NOT NULL,
+    tier TEXT,
+    elo_diff REAL,
+    team1_win_prob REAL NOT NULL,                 -- calibrated P(team1 wins the map)
+    team1_won INTEGER NOT NULL,
+    correct INTEGER NOT NULL,
+    confidence TEXT NOT NULL                      -- 'sharp' | 'lean' | 'coinflip'
+);
 ```
 
 ### 2.5 Live state tables

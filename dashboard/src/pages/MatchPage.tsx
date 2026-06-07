@@ -10,6 +10,13 @@ import { getMatch, type MatchView } from '../lib/api'
 import { Insight } from '../components/Insight'
 import { WinProbBar } from '../components/WinProbBar'
 
+function ConfChip({ c }: { c: string }) {
+  const tip = c === 'sharp' ? 'big skill gap — the model is reliable here (~74% out-of-sample)'
+    : c === 'coinflip' ? 'evenly matched / elite — treat as a coin-flip'
+    : 'some edge, but modest'
+  return <span className={`conf-chip conf-${c}`} title={tip}>{c}</span>
+}
+
 function ExpectedTable({ d }: { d: MatchView }) {
   const rows = [...d.expected_stats].sort((a, b) => (b.delta_acs ?? 0) - (a.delta_acs ?? 0))
   return (
@@ -72,7 +79,10 @@ export function MatchPage() {
         <Insight insight={d.prematch_insight} />
 
         <div style={{ marginTop: 12 }}>
-          <div className="sub">Pre-match win probability</div>
+          <div className="sub">
+            Pre-match win probability
+            {d.prediction.confidence && <ConfChip c={d.prediction.confidence} />}
+          </div>
           <WinProbBar p1={toPrx(d.prediction.team1_win_prob)} label1={prxName} label2={oppName} />
         </div>
 

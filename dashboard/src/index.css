@@ -181,6 +181,13 @@ a.hero-card:hover { border-color: var(--team1); }
 table.stints td.over { color: var(--good); }
 table.stints td.under { color: var(--team2); }
 
+/* Confidence chip (decision-grade) */
+.conf-chip { display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); margin-left: 8px; cursor: help; }
+.conf-sharp { color: var(--bg); background: var(--good); border-color: var(--good); font-weight: 600; }
+.conf-lean { color: var(--accent); border-color: var(--accent); }
+.conf-coinflip { color: var(--muted); }
+
 /* Recent-form list (player) */
 .form-list { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
 .form-row { display: grid; grid-template-columns: 92px 1fr 80px 70px 48px; align-items: center; gap: 10px;

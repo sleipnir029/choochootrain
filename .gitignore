@@ -241,6 +241,7 @@ logs/*
 
 # PRX Predictor — saved posterior traces (regenerable; re-trained weekly). Keep the dir.
 models/saved/*.nc
+models/saved/calibration.json
 !models/saved/.gitkeep
 
 # PRX Predictor — marimo notebook artifacts

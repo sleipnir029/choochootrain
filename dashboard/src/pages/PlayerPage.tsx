@@ -2,8 +2,11 @@
 // (expected vs actual ACS) + per-team-stint stats (SPEC D2).
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar as RBar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { getPlayer, type PlayerView } from '../lib/api'
+import { Pizza, Bar } from '../components/Viz'
+
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`
 
 export function PlayerPage() {
   const { id } = useParams()
@@ -50,6 +53,26 @@ export function PlayerPage() {
           </div>
         )}
       </div>
+
+      {p.profile && p.profile.axes.length > 0 && (
+        <div className="panel">
+          <div className="sub">Profile — percentile vs {p.profile.role} peers (last {p.profile.n_maps} maps · {p.profile.n_peers} peers)</div>
+          {p.profile.overall_pct != null && (
+            <div className="takeaway">
+              <strong>{p.handle}</strong> ranks in the <strong>{ordinal(p.profile.overall_pct)} percentile</strong> overall among {p.profile.role.toLowerCase()}s.
+            </div>
+          )}
+          <div className="pizza-wrap">
+            <Pizza axes={p.profile.axes.map((a) => ({ label: a.label, pct: a.pct }))} />
+            <div style={{ flex: 1, minWidth: 280 }}>
+              {p.profile.axes.map((a) => (
+                <Bar key={a.label} label={`${a.label} (${a.value})`} frac={a.pct / 100} value={ordinal(a.pct)}
+                  tone={a.pct >= 67 ? 'hi' : a.pct <= 33 ? 'lo' : ''} />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {p.duels && (p.duels.best.length > 0 || p.duels.worst.length > 0) && (
         <div className="panel">
@@ -102,7 +125,7 @@ export function PlayerPage() {
                 <XAxis dataKey="team" stroke="#8b949e" fontSize={12} />
                 <YAxis stroke="#8b949e" fontSize={12} />
                 <Tooltip contentStyle={{ background: '#161b22', border: '1px solid #2a3340', fontSize: 12 }} cursor={{ fill: '#1c2330' }} />
-                <Bar dataKey="acs" fill="#4ea1ff" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                <RBar dataKey="acs" fill="#4ea1ff" radius={[3, 3, 0, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>

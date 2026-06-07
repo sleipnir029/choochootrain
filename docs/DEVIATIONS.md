@@ -57,6 +57,22 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Dashboard overhaul: Playwright dev tooling + "overall percentile" instead of a reverse-engineered rating
+
+**Phase / Task:** Decision-grade analytics, dashboard insight overhaul (Rahat-directed: "make the dashboard better-looking and actually insightful using existing data")
+
+**Spec / plan said:** CLAUDE.md: "Adding a new external dependency (always propose first)." The research menu listed an "HLTV-2.0-style composite impact rating" as a candidate metric.
+
+**What was actually done / why:**
+- **Added Playwright (+ Chromium) as a dev-only verification tool**, plus `scripts/shots.py`, to screenshot the FastAPI-served dashboard. Rahat explicitly chose "I drive a browser (Playwright)" for verification, so this is sanctioned. It is NOT a runtime/app dependency and is not imported by the app or pytest — not added to runtime requirements.
+- **Skipped the composite HLTV-2.0 rating; show "overall percentile vs role peers" instead.** The public Valorant approximation of HLTV 2.0 is reverse-engineered and easy to get subtly wrong; we already surface a principled skill number (TrueSkill mu−3σ + percentile). An average-of-axis-percentiles is honest and self-explanatory. The composite rating remains available to add later if wanted.
+
+**Impact:** No schema change. New analytics (`scouting.player_profile`, `recent_form`, `head_to_head` dumbbell) are pure reads over existing tables. Verification now depends on a dev Playwright install (one-time). Dashboard depends at render time on valorant-api CDN (Phase B) — unchanged.
+
+**Rahat approval:** yes (directed the overhaul; chose Playwright verification + pizza-and-bars player card).
+
+**Related commit:** `<pending>`
+
 ### 2026-06-07 — Phase B (visuals): hotlink valorant-api assets via a committed manifest, not mirrored binaries
 
 **Phase / Task:** Decision-grade analytics, Phase B (visual overhaul)

@@ -175,6 +175,24 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Dashboard insight overhaul (answer-first framing + new viz + theme), Playwright-verified
+
+**Done:** Made the dashboard *insightful*, not just charted — grounded in two research passes (esports dashboard design + non-spatial Valorant analytics) and built entirely on existing data. Phased C→B→A:
+- **C (foundation):** `components/Viz.tsx` reusable primitives (`Ban`, `FormDots`, `Bar`, `Dumbbell`, `Spectrum`, `Pizza`) + an `index.css` block (tabular-nums, BAN cards, percentile/diverging/dumbbell/spectrum/pizza styles, inline side bars).
+- **B (new viz):**
+  - *Team:* recent-form W/L dots, CT/T side mini-bars, economy as bars (`scouting.recent_form`).
+  - *Player (marquee):* **pizza radar + percentile bars vs same-role peers** + an overall-percentile takeaway ("Jinggg ranks in the 61st percentile among duelists; KAST 99th, first-kills 22nd"). Backend `scouting.player_profile` percentiles a player's per-map ACS/KAST/ADR/HS%/kills/FK against role peers (≥15 maps).
+  - *Matchup:* **head-to-head dumbbell** (win rate / opening-duel / pistol / full-buy) and a **map confidence spectrum** (red→green relative edge per map). Backend `head_to_head` now returns `dumbbell` pairs.
+- **A (answer-first):** matchup leads with a BAN grid (model pick %, series %, pick/avoid map); team page leads with a takeaway line ("PRX are 8–2 · strongest on Split · rising on Lotus"); section headers reworded.
+
+**Learned or surprised:** The research's core point — insight = answer-first + comparison framing, not more charts — drove the BAN/takeaway/percentile work. Composite HLTV-2.0 rating was **deliberately skipped** in favour of an honest "overall percentile vs role peers" (we already surface TrueSkill; a reverse-engineered rating formula risked being wrong — DEVIATIONS). A stale uvicorn process (pre-Phase-A code) caused a blank Team page during verification — fixed by killing the listener; a real lesson to restart the no-reload server after backend edits.
+
+**Verification:** Installed Playwright (dev-only) + a `scripts/shots.py` harness; screenshot-verified Home/Team/Matchup/Player against the FastAPI-served build at each phase. `tsc --noEmit` clean; `vite build` ok; full suite **165 passed**.
+
+**Files touched:** `dashboard/src/components/Viz.tsx` (new), `dashboard/src/index.css`, `dashboard/src/lib/api.ts`, `dashboard/src/pages/{HomePage? no — TeamPage,MatchupPage,PlayerPage}.tsx`, `models/scouting.py` (recent_form, player_profile, head_to_head dumbbell), `api/compute.py` (player profile), `scripts/shots.py` (new, dev), `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `decision-grade.dashboard: answer-first framing + insight viz (pizza/dumbbell/spectrum)`
+
 ### 2026-06-07 — Phase B: visual overhaul (agent icons, map art, team logos, role emblems)
 
 **Done:** Replaced the numbers-only scouting/match UI with real Valorant visuals, sourced free from valorant-api + vlr.gg.

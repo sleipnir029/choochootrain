@@ -78,6 +78,8 @@ export interface Stint {
 }
 export interface FormRow { match_id: number; date: string; opponent: string | null; expected_acs: number; actual_acs: number; delta_acs: number }
 export interface DuelMatchup { opponent: string; kills: number; deaths: number; net: number }
+export interface ProfileAxis { label: string; value: number; pct: number }
+export interface PlayerProfile { role: string; n_peers: number; n_maps: number; axes: ProfileAxis[]; overall_pct: number | null }
 export interface PlayerView {
   player_id: number; handle: string; real_name: string | null; country: string | null
   current_team_id: number | null; current_team_name: string | null; current_team_tag: string | null
@@ -85,6 +87,7 @@ export interface PlayerView {
   stints: Stint[]
   recent_form: FormRow[]
   duels?: { best: DuelMatchup[]; worst: DuelMatchup[] }
+  profile?: PlayerProfile | null
 }
 
 // --- live (for the top-bar pill) --------------------------------------------
@@ -130,6 +133,7 @@ export interface MetaShift { recent: MetaWindow | null; prior: MetaWindow | null
 export interface TeamScouting {
   team: { team_id: number; name: string; tag: string | null; region: string | null; logo_url: string | null }
   window_maps: number
+  recent_form: ('W' | 'L')[]
   map_pool: MapPoolRow[]
   meta_shift: MetaShift
   economy: { pistol: number; eco: number; semi_buy: number; full_buy: number } | null
@@ -146,12 +150,14 @@ export const getTeams = () => http.get<{ teams: TeamListItem[] }>('/api/teams').
 // --- head-to-head matchup ---------------------------------------------------
 export interface MapEdgeRow { map_name: string; t1_win_rate: number | null; t1_win_rate_adj: number | null; t1_n: number; t2_win_rate: number | null; t2_win_rate_adj: number | null; t2_n: number }
 export interface KeyDuel { t1_player: string; t2_player: string; kills: number; deaths: number; net: number }
+export interface DumbbellRow { label: string; t1: number; t2: number }
 export interface Matchup {
   team1: TeamBrief; team2: TeamBrief
   prediction: Prediction
   prx_side: 'team1' | 'team2' | null
   prematch_insight: Insight
   map_edge: MapEdgeRow[]
+  dumbbell: DumbbellRow[]
   veto1: { n_matches: number; bans: VetoRow[]; picks: VetoRow[] }
   veto2: { n_matches: number; bans: VetoRow[]; picks: VetoRow[] }
   comps1: CompRow[]; comps2: CompRow[]

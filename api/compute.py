@@ -249,6 +249,8 @@ def player_view(conn, db_path, player_id):
     out["recent_form"] = trend
 
     # Head-to-head duel matrix (tier-2): best/worst recent matchups.
-    from models.scouting import player_duels
+    from models.scouting import player_duels, player_profile
     out["duels"] = player_duels(conn, out["handle"])
+    # Stat profile as percentiles vs same-role peers (pizza / percentile card).
+    out["profile"] = player_profile(conn, player_id)
     return out

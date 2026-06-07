@@ -4,8 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { getTeamScouting, type TeamScouting } from '../lib/api'
 import { AgentIcon, TeamLogo, MapThumb, Comp } from '../components/Visual'
+import { FormDots, Bar } from '../components/Viz'
 
 const pc = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`)
+const ibar = (x: number | null, cls: string) => (
+  <><span className={`ibar ${cls}`}><span style={{ width: `${Math.round((x ?? 0) * 100)}%` }} /></span>{pc(x)}</>
+)
 
 export function TeamPage() {
   const { id } = useParams()
@@ -17,6 +21,10 @@ export function TeamPage() {
   if (q.isError) return <div className="panel error">{(q.error as Error).message}</div>
   const s = q.data!
   const econ = s.economy
+  const wins = s.recent_form.filter((f) => f === 'W').length
+  const losses = s.recent_form.length - wins
+  const bestMap = [...s.map_pool].sort((a, b) => (b.win_rate_adj ?? 0) - (a.win_rate_adj ?? 0))[0]
+  const riser = s.meta_shift.movers.find((mv) => mv.delta > 0)
 
   return (
     <>
@@ -24,7 +32,17 @@ export function TeamPage() {
         <TeamLogo url={s.team.logo_url} name={s.team.name} size={38} />
         <h2>{s.team.name}</h2>
         <span className="rank-chip">scouting · last {s.window_maps} maps</span>
+        {s.recent_form.length > 0 && <FormDots results={s.recent_form} />}
       </div>
+
+      {(wins + losses > 0 || bestMap) && (
+        <div className="takeaway">
+          <strong>{s.team.name}</strong>
+          {wins + losses > 0 && <> are {wins}–{losses} in their last {wins + losses}</>}
+          {bestMap && <> · strongest on <strong>{bestMap.map_name}</strong> ({pc(bestMap.win_rate)} over {bestMap.n})</>}
+          {riser && <> · rising on <strong>{riser.map_name}</strong> (+{Math.round(riser.delta * 100)})</>}.
+        </div>
+      )}
 
       <div className="panel">
         <div className="sub">Map pool & side tendencies</div>
@@ -35,8 +53,8 @@ export function TeamPage() {
               <tr key={m.map_name}>
                 <td><span className="map-cell"><MapThumb map={m.map_name} h={28} />{m.map_name}</span></td><td>{m.n}</td>
                 <td className={(m.win_rate_adj ?? 0) >= 0.6 ? 'over' : (m.win_rate_adj ?? 1) <= 0.4 ? 'under' : ''}>{pc(m.win_rate)}</td>
-                <td className="muted">{pc(m.ct_win_rate)}</td>
-                <td className="muted">{pc(m.t_win_rate)}</td>
+                <td className="muted">{ibar(m.ct_win_rate, 'ct')}</td>
+                <td className="muted">{ibar(m.t_win_rate, 't')}</td>
               </tr>
             ))}
           </tbody>
@@ -69,15 +87,10 @@ export function TeamPage() {
 
       {econ && (
         <div className="panel">
-          <div className="sub">Economy efficiency (win% by buy type)</div>
-          <div className="roster-grid">
-            {[['Pistol', econ.pistol], ['Eco', econ.eco], ['Semi-buy', econ.semi_buy], ['Full-buy', econ.full_buy]].map(([k, v]) => (
-              <div className="roster-card" key={k as string}>
-                <div className="rc-name muted">{k}</div>
-                <div className="rc-skill">{v}%</div>
-              </div>
-            ))}
-          </div>
+          <div className="sub">Economy — round win% by buy type</div>
+          {([['Pistol', econ.pistol], ['Eco', econ.eco], ['Semi-buy', econ.semi_buy], ['Full-buy', econ.full_buy]] as [string, number][]).map(([k, v]) => (
+            <Bar key={k} label={k} frac={v / 100} value={`${v}%`} />
+          ))}
         </div>
       )}
 

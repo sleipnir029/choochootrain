@@ -282,6 +282,53 @@ def player_duels(conn, player_handle, *, n_matches=25, min_duels=12, top=5):
     return {"best": duels[:top], "worst": list(reversed(duels[-top:])) if len(duels) > top else []}
 
 
+# Player-profile axes: (display label, map_player_stats column). All are per-map averages so
+# no per-round normalization is needed; percentiled vs role peers (StatsBomb/HLTV method).
+_PROFILE_AXES = [("ACS", "acs"), ("KAST%", "kast_pct"), ("ADR", "adr"),
+                 ("HS%", "hs_pct"), ("Kills/map", "kills"), ("First kills", "fk")]
+
+
+def _player_aggs(conn, min_maps):
+    rows = conn.execute(
+        """SELECT player_id, COUNT(*) n, AVG(acs) acs, AVG(kast_pct) kast_pct, AVG(adr) adr,
+                  AVG(hs_pct) hs_pct, AVG(kills) kills, AVG(fk) fk
+           FROM map_player_stats WHERE player_id IS NOT NULL
+           GROUP BY player_id HAVING n >= ?""", (min_maps,)).fetchall()
+    return {r["player_id"]: dict(r) for r in rows}
+
+
+def _player_roles(conn):
+    pool = defaultdict(Counter)
+    for r in conn.execute(
+        """SELECT player_id, agent, COUNT(*) c FROM map_player_stats
+           WHERE player_id IS NOT NULL AND agent IS NOT NULL GROUP BY player_id, agent"""):
+        pool[r["player_id"]][agent_role(r["agent"])] += r["c"]
+    return {pid: cnt.most_common(1)[0][0] for pid, cnt in pool.items()}
+
+
+def player_profile(conn, player_id, *, min_maps=15):
+    """A player's stat profile as percentiles vs same-role peers (the pizza/percentile card).
+    Role = the player's most-played role; peers = players with >= ``min_maps`` sharing it."""
+    aggs = _player_aggs(conn, min_maps)
+    if player_id not in aggs:
+        return None
+    roles = _player_roles(conn)
+    role = roles.get(player_id, "Unknown")
+    peers = [p for p in aggs if roles.get(p) == role]
+    me = aggs[player_id]
+    axes = []
+    for label, col in _PROFILE_AXES:
+        mine = me[col]
+        vals = [aggs[p][col] for p in peers if aggs[p][col] is not None]
+        if mine is None or len(vals) < 5:
+            continue
+        pct = round(100 * sum(1 for v in vals if v < mine) / len(vals))
+        axes.append({"label": label, "value": round(mine, 1), "pct": pct})
+    overall = round(sum(a["pct"] for a in axes) / len(axes)) if axes else None
+    return {"role": role, "n_peers": len(peers), "n_maps": me["n"],
+            "axes": axes, "overall_pct": overall}
+
+
 def _recent_handles(conn, team_id, map_ids):
     if not map_ids:
         return []
@@ -320,8 +367,27 @@ def head_to_head(conn, team1_id, team2_id, *, window=WINDOW):
         key_duels = [{"t1_player": r["player_handle"], "t2_player": r["opponent_handle"],
                       "kills": r["k"], "deaths": r["d"], "net": r["k"] - r["d"]} for r in rows[:12]]
 
+    # Head-to-head metric pairs (0..1) for the dumbbell, from the scouting we already built.
+    def _form_wr(s):
+        f = s.get("recent_form") or []
+        return (f.count("W") / len(f)) if f else None
+
+    def _econ(s, k):
+        e = s.get("economy")
+        return (e[k] / 100) if e and e.get(k) is not None else None
+
+    pairs = [
+        ("Recent win rate", _form_wr(s1), _form_wr(s2)),
+        ("Opening-duel win%", (s1["opening_duels"]["team"] or {}).get("win_rate"),
+         (s2["opening_duels"]["team"] or {}).get("win_rate")),
+        ("Pistol win%", _econ(s1, "pistol"), _econ(s2, "pistol")),
+        ("Full-buy win%", _econ(s1, "full_buy"), _econ(s2, "full_buy")),
+    ]
+    dumbbell = [{"label": lbl, "t1": a, "t2": b} for lbl, a, b in pairs if a is not None and b is not None]
+
     return {
         "map_edge": map_edge,
+        "dumbbell": dumbbell,
         "veto1": s1["veto"], "veto2": s2["veto"],
         "comps1": s1["agents"]["comps_by_map"], "comps2": s2["agents"]["comps_by_map"],
         "key_duels": key_duels,
@@ -375,6 +441,16 @@ def meta_shift(conn, team_id, *, recent_n=40, prior_n=40, min_each=2, move=0.12)
             "movers": movers}
 
 
+def recent_form(conn, team_id, *, n=10):
+    """Last ``n`` match results as 'W'/'L', oldest → newest (for a form sparkline)."""
+    rows = conn.execute(
+        f"""SELECT m.winner_id FROM matches m
+            WHERE (m.team1_id = ? OR m.team2_id = ?) AND m.winner_id IS NOT NULL AND {_NOT_SHOW}
+            ORDER BY m.date_utc DESC, m.match_id DESC LIMIT ?""",
+        (team_id, team_id, n)).fetchall()
+    return ["W" if r["winner_id"] == team_id else "L" for r in reversed(rows)]
+
+
 def team_scouting(conn, team_id, *, window=WINDOW):
     """Full scouting report for a team over its most recent ``window`` maps."""
     map_ids = _recent_map_ids(conn, team_id, window)
@@ -382,6 +458,7 @@ def team_scouting(conn, team_id, *, window=WINDOW):
     return {
         "team_id": team_id,
         "window_maps": len(map_ids),
+        "recent_form": recent_form(conn, team_id),
         "map_pool": map_pool(conn, team_id, map_ids),
         "economy": economy(conn, team_id, map_ids),
         "agents": agents,

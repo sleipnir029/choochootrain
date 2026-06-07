@@ -77,12 +77,14 @@ export interface Stint {
   avg_deaths: number | null; avg_assists: number | null; first_date: string; last_date: string
 }
 export interface FormRow { match_id: number; date: string; opponent: string | null; expected_acs: number; actual_acs: number; delta_acs: number }
+export interface DuelMatchup { opponent: string; kills: number; deaths: number; net: number }
 export interface PlayerView {
   player_id: number; handle: string; real_name: string | null; country: string | null
   current_team_id: number | null; current_team_name: string | null; current_team_tag: string | null
   skill: { rating: number; percentile: number; rated_players: number } | null
   stints: Stint[]
   recent_form: FormRow[]
+  duels?: { best: DuelMatchup[]; worst: DuelMatchup[] }
 }
 
 // --- live (for the top-bar pill) --------------------------------------------
@@ -112,6 +114,11 @@ export interface MapPoolRow { map_name: string; n: number; win_rate: number | nu
 export interface CompRow { map_name: string; comp: string[]; n: number; win_rate: number | null }
 export interface AgentPool { handle: string; agents: { agent: string; n: number }[] }
 export interface DuelRow { handle: string; fk: number; fd: number; win_rate: number | null }
+export interface VetoRow { map_name: string; n: number }
+export interface ImpactRow {
+  player_handle: string; clutches: number; big_clutches: number
+  multikills: number; big_multikills: number; plants: number; defuses: number
+}
 export interface TeamScouting {
   team: { team_id: number; name: string; tag: string | null; region: string | null; logo_url: string | null }
   window_maps: number
@@ -119,6 +126,8 @@ export interface TeamScouting {
   economy: { pistol: number; eco: number; semi_buy: number; full_buy: number } | null
   agents: { by_player: AgentPool[]; comps_by_map: CompRow[] }
   opening_duels: { team: { fk: number; fd: number; win_rate: number | null } | null; by_player: DuelRow[] }
+  veto: { n_matches: number; bans: VetoRow[]; picks: VetoRow[] }
+  impact: ImpactRow[]
 }
 export const getTeamScouting = (id: number) => http.get<TeamScouting>(`/api/teams/${id}/scouting`).then((r) => r.data)
 

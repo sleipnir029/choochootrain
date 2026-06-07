@@ -139,7 +139,8 @@ def test_ingest_into_db_complete_and_idempotent(tmp_path):
     counts = ingest_detail_into_db(conn, detail)
     conn.commit()
     conn.close()
-    assert counts == {"maps": 1, "rounds": 21, "player_stats": 10, "economy": 2, "maps_complete": 1}
+    assert counts == {"maps": 1, "rounds": 21, "player_stats": 10, "economy": 2,
+                      "maps_complete": 1, "duels": 0, "advanced": 0, "veto": 0}
     assert _count(db, "maps") == 1 and _count(db, "rounds") == 21
     assert _count(db, "map_player_stats") == 10 and _count(db, "map_team_economy") == 2
 
@@ -182,3 +183,33 @@ def test_ingest_match_details_via_client(tmp_path):
     db = _setup_db(tmp_path)
     counts = asyncio.run(ingest_match_details(312765, db, client=_FakeClient(_make_detail(21))))
     assert counts["maps"] == 1 and counts["rounds"] == 21 and _count(db, "map_player_stats") == 10
+
+
+# --- tier-2 scouting parsers (kill matrix / advanced / veto) ----------------
+
+def test_parse_veto():
+    from ingestion.match_details import parse_veto
+    rows = parse_veto("FS ban Ascent; PRX pick Lotus; Breeze remains", 1, {"FS": 10, "PRX": 20})
+    assert rows[0] == {"match_id": 1, "veto_order": 0, "team_id": 10, "team_tag": "FS",
+                       "action": "ban", "map_name": "Ascent"}
+    assert rows[1]["action"] == "pick" and rows[1]["team_id"] == 20 and rows[1]["map_name"] == "Lotus"
+    assert rows[2]["action"] == "decider" and rows[2]["team_id"] is None and rows[2]["map_name"] == "Breeze"
+
+
+def test_parse_kill_matrix_stores_both_directions():
+    from ingestion.match_details import parse_kill_matrix
+    perf = {"kill_matrix": [
+        {"player": "", "kills_vs": {"1": "f0rsakeN PRX"}},
+        {"player": "primmie FS", "kills_vs": {"1": "4 16 -12"}},
+    ]}
+    by = {(r["player_handle"], r["opponent_handle"]): r for r in parse_kill_matrix(perf)}
+    assert by[("primmie", "f0rsakeN")]["kills"] == 4 and by[("primmie", "f0rsakeN")]["deaths"] == 16
+    assert by[("f0rsakeN", "primmie")]["kills"] == 16 and by[("f0rsakeN", "primmie")]["deaths"] == 4
+
+
+def test_parse_advanced():
+    from ingestion.match_details import parse_advanced
+    r = parse_advanced({"advanced_stats": [
+        {"player": "Crws FS", "2": "6", "3": "3", "7": "1", "12": "7", "13": "0"}]})[0]
+    assert r["player_handle"] == "Crws" and r["mk2"] == 6 and r["mk3"] == 3
+    assert r["cl2"] == 1 and r["plants"] == 7 and r["defuses"] == 0 and r["mk5"] == 0

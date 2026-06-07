@@ -51,6 +51,32 @@ export function PlayerPage() {
         )}
       </div>
 
+      {p.duels && (p.duels.best.length > 0 || p.duels.worst.length > 0) && (
+        <div className="panel">
+          <div className="sub">Head-to-head duels — who he beats / who beats him (recent)</div>
+          <div className="veto-cols">
+            <div>
+              <div className="muted" style={{ marginBottom: 4 }}>Dominates</div>
+              {p.duels.best.map((d) => (
+                <div className="form-row" key={d.opponent} style={{ gridTemplateColumns: '1fr 90px 48px' }}>
+                  <span>vs {d.opponent}</span><span className="muted">{d.kills}–{d.deaths}</span>
+                  <span className="over">+{d.net}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 4 }}>Struggles vs</div>
+              {p.duels.worst.map((d) => (
+                <div className="form-row" key={d.opponent} style={{ gridTemplateColumns: '1fr 90px 48px' }}>
+                  <span>vs {d.opponent}</span><span className="muted">{d.kills}–{d.deaths}</span>
+                  <span className="under">{d.net}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="panel">
         <div className="sub">By team stint — each team kept separate (SPEC D2)</div>
         <table className="stints">

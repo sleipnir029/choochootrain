@@ -144,6 +144,80 @@ def agents_and_duels(conn, team_id, map_ids):
     return {"by_player": by_player, "comps_by_map": comps_by_map}, duels
 
 
+def veto_tendencies(conn, team_id, n_matches=20):
+    """Most-banned / most-picked maps over the team's recent matches (tier-2)."""
+    matches = [r[0] for r in conn.execute(
+        f"""SELECT m.match_id FROM matches m
+            WHERE (m.team1_id = ? OR m.team2_id = ?) AND {_NOT_SHOW}
+            ORDER BY m.date_utc DESC LIMIT ?""", (team_id, team_id, n_matches)).fetchall()]
+    if not matches:
+        return {"bans": [], "picks": [], "n_matches": 0}
+    q = ",".join("?" * len(matches))
+    rows = conn.execute(
+        f"SELECT action, map_name FROM match_veto WHERE team_id = ? AND match_id IN ({q})",
+        [team_id, *matches]).fetchall()
+    bans, picks = Counter(), Counter()
+    for r in rows:
+        (bans if r["action"] == "ban" else picks if r["action"] == "pick" else Counter())[r["map_name"]] += 1
+    return {"n_matches": len(matches),
+            "bans": [{"map_name": k, "n": v} for k, v in bans.most_common()],
+            "picks": [{"map_name": k, "n": v} for k, v in picks.most_common()]}
+
+
+def _recent_match_ids(conn, team_id, n):
+    return [r[0] for r in conn.execute(
+        f"""SELECT m.match_id FROM matches m
+            WHERE (m.team1_id = ? OR m.team2_id = ?) AND {_NOT_SHOW}
+            ORDER BY m.date_utc DESC LIMIT ?""", (team_id, team_id, n)).fetchall()]
+
+
+def impact(conn, team_id, n_matches=20):
+    """Per-player clutches / multikills / plants / defuses over recent matches (tier-2).
+
+    match_player_advanced is match-level (vlr's performance tab), so aggregate over
+    matches, not maps.
+    """
+    matches = _recent_match_ids(conn, team_id, n_matches)
+    if not matches:
+        return []
+    q = ",".join("?" * len(matches))
+    rows = conn.execute(
+        f"""SELECT a.player_handle,
+                   SUM(a.cl1 + a.cl2 + a.cl3 + a.cl4 + a.cl5) AS clutches,
+                   SUM(a.cl3 + a.cl4 + a.cl5) AS big_clutches,
+                   SUM(a.mk2 + a.mk3 + a.mk4 + a.mk5) AS multikills,
+                   SUM(a.mk4 + a.mk5) AS big_multikills,
+                   SUM(a.plants) AS plants, SUM(a.defuses) AS defuses
+            FROM match_player_advanced a
+            WHERE a.match_id IN ({q}) AND a.player_handle IN (
+                SELECT DISTINCT mps.player_handle FROM map_player_stats mps
+                JOIN maps mp ON mp.map_id = mps.map_id
+                WHERE mp.match_id IN ({q}) AND mps.team_id_at_match = ?)
+            GROUP BY a.player_handle ORDER BY clutches DESC""",
+        [*matches, *matches, team_id]).fetchall()
+    return [dict(r) for r in rows]
+
+
+def player_duels(conn, player_handle, *, n_matches=25, min_duels=12, top=5):
+    """A player's best/worst head-to-head opponents over recent matches (tier-2)."""
+    matches = [r[0] for r in conn.execute(
+        f"""SELECT DISTINCT mp.match_id FROM map_player_stats mps
+            JOIN maps mp ON mp.map_id = mps.map_id JOIN matches m ON m.match_id = mp.match_id
+            WHERE mps.player_handle = ? AND {_NOT_SHOW}
+            ORDER BY mp.match_id DESC LIMIT ?""", (player_handle, n_matches)).fetchall()]
+    if not matches:
+        return {"best": [], "worst": []}
+    q = ",".join("?" * len(matches))
+    rows = conn.execute(
+        f"""SELECT opponent_handle, SUM(kills) k, SUM(deaths) d
+            FROM match_player_duels WHERE player_handle = ? AND match_id IN ({q})
+            GROUP BY opponent_handle HAVING (k + d) >= ?
+            ORDER BY (k - d) DESC""", [player_handle, *matches, min_duels]).fetchall()
+    duels = [{"opponent": r["opponent_handle"], "kills": r["k"], "deaths": r["d"], "net": r["k"] - r["d"]}
+             for r in rows]
+    return {"best": duels[:top], "worst": list(reversed(duels[-top:])) if len(duels) > top else []}
+
+
 def team_scouting(conn, team_id, *, window=WINDOW):
     """Full scouting report for a team over its most recent ``window`` maps."""
     map_ids = _recent_map_ids(conn, team_id, window)
@@ -155,6 +229,8 @@ def team_scouting(conn, team_id, *, window=WINDOW):
         "economy": economy(conn, team_id, map_ids),
         "agents": agents,
         "opening_duels": duels,
+        "veto": veto_tendencies(conn, team_id),
+        "impact": impact(conn, team_id),
     }
 
 

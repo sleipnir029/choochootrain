@@ -180,6 +180,91 @@ def parse_economy(economy: list, map_id: int, team_ids: tuple[int, int]) -> list
     return rows
 
 
+# ---- tier-2 scouting parsers (kill matrix / advanced stats / veto) -------
+def _handle(name: str) -> str | None:
+    """'f0rsakeN PRX' -> 'f0rsakeN' (strip the trailing team tag); '' -> None."""
+    if not name:
+        return None
+    h = str(name).rsplit(" ", 1)[0].strip()
+    return h or None
+
+
+def _duel_cell(cell: str) -> tuple[int, int] | None:
+    """'4 16 -12' -> (my_kills=4, opp_kills=16); '' -> None."""
+    if not cell:
+        return None
+    parts = str(cell).split()
+    if len(parts) < 2:
+        return None
+    a, b = _int(parts[0]), _int(parts[1])
+    return (a, b) if a is not None and b is not None else None
+
+
+def parse_kill_matrix(perf: dict) -> list[dict]:
+    """Directed duel rows from performance.kill_matrix (header row = opponents).
+
+    Match-level (vlr repeats the same matrix on every map). Caller adds match_id.
+    """
+    km = (perf or {}).get("kill_matrix") or []
+    if len(km) < 2:
+        return []
+    cols = {k: _handle(v) for k, v in (km[0].get("kills_vs") or {}).items()}
+    out = []
+    for row in km[1:]:
+        player = _handle(row.get("player"))
+        if not player:
+            continue
+        for col, cell in (row.get("kills_vs") or {}).items():
+            opp = cols.get(col)
+            duel = _duel_cell(cell)
+            if opp and opp != player and duel:
+                myk, oppk = duel
+                # The matrix is one-directional (rows=one team, cols=the other), so
+                # store BOTH directions — either player is then directly queryable.
+                out.append({"player_handle": player, "opponent_handle": opp,
+                            "kills": myk, "deaths": oppk})
+                out.append({"player_handle": opp, "opponent_handle": player,
+                            "kills": oppk, "deaths": myk})
+    return out
+
+
+def parse_advanced(perf: dict) -> list[dict]:
+    """Multikills (keys 2-5), clutches 1vX (6-10), plants/defuses (12-13). Match-level."""
+    out = []
+    for row in (perf or {}).get("advanced_stats") or []:
+        player = _handle(row.get("player"))
+        if not player:
+            continue
+        def g(k):
+            return _int(row.get(k)) or 0
+        out.append({
+            "player_handle": player,
+            "mk2": g("2"), "mk3": g("3"), "mk4": g("4"), "mk5": g("5"),
+            "cl1": g("6"), "cl2": g("7"), "cl3": g("8"), "cl4": g("9"), "cl5": g("10"),
+            "plants": g("12"), "defuses": g("13"),
+        })
+    return out
+
+
+def parse_veto(veto_str: str, match_id: int, tag_to_id: dict) -> list[dict]:
+    """'FS ban Ascent; PRX pick Lotus; Breeze remains' -> veto rows."""
+    out = []
+    for i, part in enumerate(p.strip() for p in (veto_str or "").split(";")):
+        if not part:
+            continue
+        toks = part.split()
+        if part.lower().endswith("remains"):
+            out.append({"match_id": match_id, "veto_order": i, "team_id": None,
+                        "team_tag": None, "action": "decider",
+                        "map_name": " ".join(toks[:-1]).strip()})
+        elif len(toks) >= 3 and toks[1].lower() in ("ban", "pick"):
+            tag = toks[0]
+            out.append({"match_id": match_id, "veto_order": i,
+                        "team_id": tag_to_id.get(tag.upper()), "team_tag": tag,
+                        "action": toks[1].lower(), "map_name": " ".join(toks[2:]).strip()})
+    return out
+
+
 # ---- DB writes -----------------------------------------------------------
 def _upsert_map(conn: sqlite3.Connection, row: dict, is_complete: int) -> int:
     conn.execute(
@@ -252,14 +337,64 @@ def _upsert_economy(conn, e: dict) -> None:
     )
 
 
+def _upsert_duel(conn, d: dict) -> None:
+    conn.execute(
+        "INSERT INTO match_player_duels (match_id, player_handle, opponent_handle, kills, deaths) "
+        "VALUES (:match_id, :player_handle, :opponent_handle, :kills, :deaths) "
+        "ON CONFLICT(match_id, player_handle, opponent_handle) DO UPDATE SET "
+        "kills=excluded.kills, deaths=excluded.deaths", d)
+
+
+def _upsert_advanced(conn, a: dict) -> None:
+    conn.execute(
+        "INSERT INTO match_player_advanced (match_id, player_handle, mk2, mk3, mk4, mk5, "
+        "cl1, cl2, cl3, cl4, cl5, plants, defuses) VALUES (:match_id, :player_handle, "
+        ":mk2, :mk3, :mk4, :mk5, :cl1, :cl2, :cl3, :cl4, :cl5, :plants, :defuses) "
+        "ON CONFLICT(match_id, player_handle) DO UPDATE SET "
+        "mk2=excluded.mk2, mk3=excluded.mk3, mk4=excluded.mk4, mk5=excluded.mk5, "
+        "cl1=excluded.cl1, cl2=excluded.cl2, cl3=excluded.cl3, cl4=excluded.cl4, "
+        "cl5=excluded.cl5, plants=excluded.plants, defuses=excluded.defuses", a)
+
+
+def _upsert_veto(conn, v: dict) -> None:
+    conn.execute(
+        "INSERT INTO match_veto (match_id, veto_order, team_id, team_tag, action, map_name) "
+        "VALUES (:match_id, :veto_order, :team_id, :team_tag, :action, :map_name) "
+        "ON CONFLICT(match_id, veto_order) DO UPDATE SET team_id=excluded.team_id, "
+        "team_tag=excluded.team_tag, action=excluded.action, map_name=excluded.map_name", v)
+
+
 def ingest_detail_into_db(conn: sqlite3.Connection, detail: dict) -> dict:
-    """Parse a /v2/match/details segment and write maps/rounds/stats/economy.
+    """Parse a /v2/match/details segment and write maps/rounds/stats/economy + the
+    tier-2 scouting tables (kill-matrix duels, advanced stats, match veto).
 
     Returns a small summary dict. Skips maps with no name (unplayed).
     """
     match_id = int(detail["match_id"])
     team_ids = (int(detail["teams"][0]["id"]), int(detail["teams"][1]["id"]))
-    counts = {"maps": 0, "rounds": 0, "player_stats": 0, "economy": 0, "maps_complete": 0}
+    counts = {"maps": 0, "rounds": 0, "player_stats": 0, "economy": 0, "maps_complete": 0,
+              "duels": 0, "advanced": 0, "veto": 0}
+
+    # Match-level veto (resolve team tags -> ids from the match's two teams).
+    tag_to_id = {}
+    for tid in team_ids:
+        row = conn.execute("SELECT tag FROM teams WHERE team_id = ?", (tid,)).fetchone()
+        if row and row[0]:
+            tag_to_id[row[0].upper()] = tid
+    for v in parse_veto(detail.get("map_vetos", ""), match_id, tag_to_id):
+        _upsert_veto(conn, v)
+        counts["veto"] += 1
+
+    # Match-level performance (vlr repeats the same kill matrix + advanced stats on
+    # every map), so parse it ONCE from the first map that carries it.
+    perf = next((m.get("performance") for m in detail.get("maps", [])
+                 if (m.get("performance") or {}).get("kill_matrix")), {})
+    for d in parse_kill_matrix(perf):
+        _upsert_duel(conn, {**d, "match_id": match_id})
+        counts["duels"] += 1
+    for a in parse_advanced(perf):
+        _upsert_advanced(conn, {**a, "match_id": match_id})
+        counts["advanced"] += 1
 
     for idx, m in enumerate(detail.get("maps", [])):
         if not m.get("map_name"):

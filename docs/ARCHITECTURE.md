@@ -214,6 +214,26 @@ CREATE TABLE map_team_economy (
     PRIMARY KEY (map_id, team_id_at_match),
     FOREIGN KEY (map_id) REFERENCES maps(map_id)
 );
+
+-- Tier-2 scouting, re-ingested from /v2/match/details (scripts/reingest_details).
+-- vlr's performance tab is MATCH-level (repeats per map) -> keyed by match_id.
+CREATE TABLE match_player_duels (             -- directed kill matrix (both directions stored)
+    match_id INTEGER NOT NULL, player_handle TEXT NOT NULL, opponent_handle TEXT NOT NULL,
+    kills INTEGER NOT NULL, deaths INTEGER NOT NULL,
+    PRIMARY KEY (match_id, player_handle, opponent_handle)
+);
+CREATE TABLE match_player_advanced (          -- multikills (2K-5K) + clutches (1v1-1v5)
+    match_id INTEGER NOT NULL, player_handle TEXT NOT NULL,
+    mk2 INTEGER, mk3 INTEGER, mk4 INTEGER, mk5 INTEGER,
+    cl1 INTEGER, cl2 INTEGER, cl3 INTEGER, cl4 INTEGER, cl5 INTEGER,
+    plants INTEGER, defuses INTEGER,          -- plants/defuses unreliable (variable column), not surfaced
+    PRIMARY KEY (match_id, player_handle)
+);
+CREATE TABLE match_veto (                     -- map ban/pick sequence (team_id resolved from tag)
+    match_id INTEGER NOT NULL, veto_order INTEGER NOT NULL, team_id INTEGER, team_tag TEXT,
+    action TEXT NOT NULL,                     -- 'ban' | 'pick' | 'decider'
+    map_name TEXT NOT NULL, PRIMARY KEY (match_id, veto_order)
+);
 ```
 
 ### 2.4 Model state tables

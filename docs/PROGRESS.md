@@ -175,6 +175,26 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Scouting tier-2 — re-ingest the dropped match-details data
+
+**Done:** Captured the rich scouting data the original ingestion dropped. Extended `ingestion/match_details.py` (parse kill matrix, advanced stats, map veto) + `scripts/reingest_details.py` (re-ingest from cache into 3 new match-level tables: `match_player_duels`, `match_player_advanced`, `match_veto`; idempotent, per-match savepoint + veto tag backfill). Surfaced: **player duel matrix** (best/worst head-to-head opponents), **team veto tendencies** (most banned/picked maps), **round impact** (clutches + multikills). Re-ingested **1098/1258 matches** (rest rate-limited cache misses).
+
+**Learned or surprised:**
+- **vlr's performance tab is match-level** (the same kill matrix + advanced stats repeat on every map). Initially stored per-map → summing inflated everything ~N×; fixed to match-keyed, parsed once per match. (Caught via a Playwright sanity check — "8 2Ks/map" was impossible.)
+- **Veto uses team tags** but `teams.tag` was NULL; backfilled each team's tag as its modal veto tag, then resolved `match_veto.team_id` per match.
+- **Plants/defuses unreliable** (variable leading column in the advanced table) → captured but not surfaced; clutches + multikills are reliable.
+- The duel matrix is the standout intel — e.g. **Jinggg dominates xavi8k 65-26 but skuba owns him 24-68** — exactly what's not pre-aggregated on vlr.gg.
+
+**Verification:** `python -m scripts.reingest_details` (reingest_done ok=1098); duel matrix + veto + impact face-valid on PRX; **Playwright** team + player pages render the new sections, 0 console errors; full suite **160 passed** (+3 parser tests).
+
+**Files touched:**
+- `ingestion/match_details.py` (parsers + match-level perf), `scripts/reingest_details.py` (created), `ingestion/schema.py` + `docs/ARCHITECTURE.md` (3 tables)
+- `models/scouting.py` (duels/impact/veto over matches), `api/compute.py` (player duels)
+- `dashboard/src/pages/{TeamPage,PlayerPage}.tsx`, `lib/api.ts`, `index.css`
+- `tests/test_match_details.py` (+3 parser tests), `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `decision-grade.scouting-tier2: duels + veto + impact (re-ingested)`
+
 ### 2026-06-07 — Analyst scouting (Wave B, slice 1) — team scouting from existing data
 
 **Done:** Rahat pivoted Wave B from betting/odds (edge is thin on efficient tier-1 markets) to **analyst scouting** — no external dependency. First slice uses *only data already in the warehouse* (no re-ingestion): `models/scouting.py` computes, over a team's recent 30 maps — **map pool + CT/T side win-rates**, **economy efficiency** (pistol/eco/semi/full-buy win%), **most-run agent comp per map** (+win%), **agent pools per player**, and **opening-duel win rate** (FK vs FD, team + per player). `GET /api/teams/{id}/scouting` + a `/team/:id` **TeamPage**; match team-names and expected-stats player-names are now clickable (match page = nav hub).

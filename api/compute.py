@@ -239,4 +239,8 @@ def player_view(conn, db_path, player_id):
                           "expected_acs": rec["expected_acs"], "actual_acs": rec["actual_acs"],
                           "delta_acs": rec["delta_acs"]})
     out["recent_form"] = trend
+
+    # Head-to-head duel matrix (tier-2): best/worst recent matchups.
+    from models.scouting import player_duels
+    out["duels"] = player_duels(conn, out["handle"])
     return out

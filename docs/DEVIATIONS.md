@@ -57,6 +57,24 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Scouting tier-2: re-ingest the dropped match-details data (duels, clutches, veto)
+
+**Phase / Task:** Decision-grade analytics, Wave B (scouting tier-2)
+
+**What was done:** Extended `ingestion/match_details.py` to capture data the original P2 ingestion dropped (DEVIATIONS 2026-06-04 P2.T6): the **kill matrix** (`match_player_duels`), **advanced stats** — multikills + clutches (`match_player_advanced`), and the **map-veto sequence** (`match_veto`). `scripts/reingest_details.py` re-runs match-details ingestion from the disk cache (no new network) into these new tables; idempotent, per-match savepoint so a bad match skips. Surfaced via the team scouting page (veto tendencies, round impact) + the player page (head-to-head **duel matrix** — "Jinggg dominates xavi8k 65-26, struggles vs skuba 24-68").
+
+**Key discoveries / decisions:**
+- **vlr's performance tab is MATCH-level**, not per-map — the identical kill matrix + advanced stats repeat on every map. Storing per-map and summing inflated everything ~N×, so the tables are keyed by `match_id` and the data is parsed **once per match** (from the first map carrying it). Caught via Playwright sanity (f0rsakeN "8 2Ks per map" was impossible vs his ~19 kills).
+- **Veto uses team tags**, but `teams.tag` is NULL and the detail's tag is empty — so a backfill derives each team's tag as the **modal veto tag across its matches**, then resolves `match_veto.team_id` per match (in `reingest_details`).
+- **Plants/defuses captured but NOT surfaced** — the advanced table has a variable leading column making the plant/defuse index unreliable (one player showed 239 plants). Multikills (keys 2-5) + clutches (6-10) are reliable and shown; plants/defuses stay in the schema, unused.
+- **Coverage ~1098/1258 matches** — the rest are rate-limited cache misses (not in cache; the live container throttled them). Spread, not systematic.
+
+**Impact:** New scouting surfaces (duel matrix, veto tendencies, clutch/multikill impact), all tier-1, no external dependency. Schema adds 3 tables (regenerable from cache via `scripts/reingest_details`).
+
+**Rahat approval:** yes (continue into tier-2 re-ingestion).
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-07 — Wave B pivot: analyst scouting instead of betting/odds
 
 **Phase / Task:** Decision-grade analytics, Wave B

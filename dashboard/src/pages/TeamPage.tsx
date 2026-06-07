@@ -93,6 +93,41 @@ export function TeamPage() {
         </table>
       </div>
 
+      {(s.veto.bans.length > 0 || s.veto.picks.length > 0) && (
+        <div className="panel">
+          <div className="sub">Veto tendencies (last {s.veto.n_matches} matches)</div>
+          <div className="veto-cols">
+            <div>
+              <div className="muted" style={{ marginBottom: 4 }}>Most banned</div>
+              {s.veto.bans.map((b) => <span key={b.map_name} className="veto-chip ban">{b.map_name} ×{b.n}</span>)}
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 4 }}>Most picked</div>
+              {s.veto.picks.map((p) => <span key={p.map_name} className="veto-chip pick">{p.map_name} ×{p.n}</span>)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {s.impact.length > 0 && (
+        <div className="panel">
+          <div className="sub">Round impact — clutches & multikills (recent matches)</div>
+          <table className="stints">
+            <thead><tr><th>Player</th><th>Clutches won</th><th>1v3+</th><th>Multikills</th><th>4K/5K</th></tr></thead>
+            <tbody>
+              {s.impact.map((p) => (
+                <tr key={p.player_handle}>
+                  <td>{p.player_handle}</td>
+                  <td className={p.clutches >= 15 ? 'over' : ''}>{p.clutches}</td>
+                  <td className="muted">{p.big_clutches}</td>
+                  <td>{p.multikills}</td><td className="muted">{p.big_multikills}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="panel">
         <div className="sub">Agent pools</div>
         <table className="stints">

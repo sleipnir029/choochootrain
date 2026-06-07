@@ -165,6 +165,44 @@ CREATE TABLE IF NOT EXISTS map_team_economy (
     FOREIGN KEY (map_id) REFERENCES maps(map_id)
 );
 
+-- Tier-2 scouting (re-ingested from /v2/match/details performance + map_vetos).
+-- NOTE: vlr's performance tab (kill matrix + advanced stats) is **match-level**
+-- (the same values repeat on every map), so these tables are keyed by match_id.
+CREATE TABLE IF NOT EXISTS match_player_duels (
+    -- Directed 1v1 kill matrix: `player_handle` got `kills` on `opponent_handle`,
+    -- and `opponent_handle` got `deaths` back (their kills on this player).
+    match_id INTEGER NOT NULL,
+    player_handle TEXT NOT NULL,
+    opponent_handle TEXT NOT NULL,
+    kills INTEGER NOT NULL,
+    deaths INTEGER NOT NULL,
+    PRIMARY KEY (match_id, player_handle, opponent_handle),
+    FOREIGN KEY (match_id) REFERENCES matches(match_id)
+);
+CREATE INDEX IF NOT EXISTS idx_duels_player ON match_player_duels(player_handle);
+
+CREATE TABLE IF NOT EXISTS match_player_advanced (
+    match_id INTEGER NOT NULL,
+    player_handle TEXT NOT NULL,
+    mk2 INTEGER, mk3 INTEGER, mk4 INTEGER, mk5 INTEGER,   -- multikills (2K..5K)
+    cl1 INTEGER, cl2 INTEGER, cl3 INTEGER, cl4 INTEGER, cl5 INTEGER,  -- clutches won 1vX
+    plants INTEGER, defuses INTEGER,
+    PRIMARY KEY (match_id, player_handle),
+    FOREIGN KEY (match_id) REFERENCES matches(match_id)
+);
+CREATE INDEX IF NOT EXISTS idx_adv_player ON match_player_advanced(player_handle);
+
+CREATE TABLE IF NOT EXISTS match_veto (
+    match_id INTEGER NOT NULL,
+    veto_order INTEGER NOT NULL,
+    team_id INTEGER,                              -- resolved from tag; NULL for 'decider'
+    team_tag TEXT,
+    action TEXT NOT NULL,                         -- 'ban' | 'pick' | 'decider'
+    map_name TEXT NOT NULL,
+    PRIMARY KEY (match_id, veto_order),
+    FOREIGN KEY (match_id) REFERENCES matches(match_id)
+);
+
 -- 2.4 Model state tables ----------------------------------------------------
 CREATE TABLE IF NOT EXISTS elo_ratings (
     team_id INTEGER NOT NULL,

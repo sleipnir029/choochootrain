@@ -51,7 +51,7 @@ function HeroCard({ hero }: { hero: Hero }) {
     <Link to={`/match/${hero.match_id}`} className="hero-card">
       <div className="hero-tag live">● Live{hero.current_map ? ` · ${hero.current_map}` : ''}</div>
       <Insight insight={hero.insight} />
-      {hero.prx_win_prob != null && <WinProbBar p1={hero.prx_win_prob} label1="PRX" label2={hero.opponent ?? 'Opponent'} />}
+      {hero.subject_win_prob != null && <WinProbBar p1={hero.subject_win_prob} label1={hero.subject} label2={hero.opponent ?? 'Opponent'} />}
       <div className="hero-cta">Follow live →</div>
     </Link>
   )

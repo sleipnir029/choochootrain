@@ -35,7 +35,7 @@ export interface RosterPlayer {
   player_id: number; handle: string; real_name: string | null; country: string | null; skill: number | null
 }
 export type Hero =
-  | { kind: 'live'; match_id: number; current_map: string | null; prx_win_prob: number | null; opponent: string | null; insight: Insight }
+  | { kind: 'live'; match_id: number; current_map: string | null; subject: string; subject_win_prob: number | null; opponent: string | null; insight: Insight }
   | { kind: 'next'; schedule: Record<string, unknown>; prediction?: PreMatchLite; insight: Insight | null }
   | {
       kind: 'recent'; match_id: number; team1: TeamBrief; team2: TeamBrief

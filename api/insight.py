@@ -130,24 +130,28 @@ def postmatch_insight(prx_prob, prx_won, *, expected=None, swing=None):
     return {"headline": headline, "points": points, "tone": tone}
 
 
-def live_insight(live, prx_side, *, prematch=None):
-    """What's happening now. ``live`` = a /api/predict/live (mode=live) dict."""
+def live_insight(live, subject_side, *, subject=PRX, prematch=None):
+    """What's happening now. ``live`` = a /api/predict/live (mode=live) dict.
+
+    Framed around ``subject`` (PRX when PRX is playing; otherwise the actual team so a
+    non-PRX tier-1 live match isn't mislabelled). ``subject_side`` is which side of the
+    live row the subject is ('team1'/'team2')."""
     cur = live.get("team1_win_prob_current_map")
     mapn = live.get("current_map") or "this map"
     if cur is None:
-        return {"headline": f"{PRX} are live on {mapn}.",
+        return {"headline": f"{subject} are live on {mapn}.",
                 "points": ["Waiting for the first in-map prediction."], "tone": "live"}
-    prx_p = _prx_prob(cur, prx_side)
+    sub_p = _prx_prob(cur, subject_side)
     t1r = (live.get("team1_round_ct") or 0) + (live.get("team1_round_t") or 0)
     t2r = (live.get("team2_round_ct") or 0) + (live.get("team2_round_t") or 0)
-    prx_r, opp_r = (t1r, t2r) if prx_side == "team1" else (t2r, t1r)
-    verb = "lead" if prx_r > opp_r else "trail" if prx_r < opp_r else "are level"
-    headline = f"{PRX} {verb} {prx_r}-{opp_r} on {mapn} — {_pct(prx_p)}% to win it."
+    sub_r, opp_r = (t1r, t2r) if subject_side == "team1" else (t2r, t1r)
+    verb = "lead" if sub_r > opp_r else "trail" if sub_r < opp_r else "are level"
+    headline = f"{subject} {verb} {sub_r}-{opp_r} on {mapn} — {_pct(sub_p)}% to win it."
 
     points = []
     if prematch is not None:
-        d = prx_p - prematch
+        d = sub_p - prematch
         if abs(d) >= 0.1:
-            points.append(f"Momentum {'with' if d > 0 else 'against'} PRX "
+            points.append(f"Momentum {'with' if d > 0 else 'against'} {subject} "
                           f"({'+' if d > 0 else ''}{_pct(d)}pt vs pre-match).")
     return {"headline": headline, "points": points, "tone": "live"}

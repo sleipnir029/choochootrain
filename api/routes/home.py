@@ -29,20 +29,26 @@ def _live_hero(conn):
                          (state["match_id"],)).fetchone()
         if m:
             t1id, t2id = m["team1_id"], m["team2_id"]
-    side = compute.prx_side(t1id, t2id) if t1id is not None else "team1"
+    # Frame around PRX when PRX is playing; otherwise the actual team1 (D3 can track a
+    # non-PRX tier-1 match — don't mislabel it as PRX).
+    prx_side = compute.prx_side(t1id, t2id) if t1id is not None else None
+    subject_side = prx_side or "team1"
+    name_of = lambda tid: (conn.execute("SELECT name FROM teams WHERE team_id = ?", (tid,)).fetchone() or [None])[0]
+    subject = "PRX" if prx_side else (name_of(t1id) or "Team 1")
+    opp_id = t2id if subject_side == "team1" else t1id
+    opponent = name_of(opp_id) if opp_id else None
+
     mi = (state["map_number"] or 1) - 1
     last = conn.execute(
         "SELECT team1_win_prob FROM live_predictions WHERE match_id = ? AND map_index = ? "
         "ORDER BY computed_at DESC LIMIT 1", (state["match_id"], mi)).fetchone()
     cur = last["team1_win_prob"] if last else None
     payload = {**dict(state), "team1_win_prob_current_map": cur}
-    prx_p = None if cur is None else (cur if side == "team1" else 1 - cur)
-    opp_id = (t2id if side == "team1" else t1id)
-    opp = conn.execute("SELECT name FROM teams WHERE team_id = ?", (opp_id,)).fetchone() if opp_id else None
+    sub_p = None if cur is None else (cur if subject_side == "team1" else 1 - cur)
     return {"kind": "live", "match_id": state["match_id"], "current_map": state["current_map"],
-            "prx_win_prob": round(prx_p, 4) if prx_p is not None else None,
-            "opponent": opp["name"] if opp else None,
-            "insight": insight.live_insight(payload, side or "team1")}
+            "subject": subject, "subject_win_prob": round(sub_p, 4) if sub_p is not None else None,
+            "opponent": opponent,
+            "insight": insight.live_insight(payload, subject_side, subject=subject)}
 
 
 def _next_hero(conn, segment):

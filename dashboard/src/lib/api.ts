@@ -131,6 +131,9 @@ export interface TeamScouting {
 }
 export const getTeamScouting = (id: number) => http.get<TeamScouting>(`/api/teams/${id}/scouting`).then((r) => r.data)
 
+export interface TeamListItem { team_id: number; name: string; tag: string | null; rating: number | null }
+export const getTeams = () => http.get<{ teams: TeamListItem[] }>('/api/teams').then((r) => r.data.teams)
+
 // --- head-to-head matchup ---------------------------------------------------
 export interface MapEdgeRow { map_name: string; t1_win_rate: number | null; t1_n: number; t2_win_rate: number | null; t2_n: number }
 export interface KeyDuel { t1_player: string; t2_player: string; kills: number; deaths: number; net: number }

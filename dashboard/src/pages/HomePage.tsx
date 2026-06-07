@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { getHome, type Hero, type Home } from '../lib/api'
 import { Insight } from '../components/Insight'
 import { WinProbBar } from '../components/WinProbBar'
+import { MatchupPicker } from '../components/MatchupPicker'
 
 function HeroCard({ hero }: { hero: Hero }) {
   if (hero.kind === 'recent') {
@@ -71,6 +72,8 @@ export function HomePage() {
       </div>
 
       {hero && <HeroCard hero={hero} />}
+
+      <MatchupPicker />
 
       <div className="panel">
         <div className="sub">Recent matches — model's call vs the result</div>

@@ -182,6 +182,10 @@ a.hero-card:hover { border-color: var(--team1); }
 table.stints td.over { color: var(--good); }
 table.stints td.under { color: var(--team2); }
 
+/* Matchup picker */
+.picker-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.select { width: auto; min-width: 190px; cursor: pointer; }
+
 /* Veto / duel two-column layout */
 .veto-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .veto-chip { display: inline-block; font-size: 13px; padding: 3px 9px; margin: 0 6px 6px 0;

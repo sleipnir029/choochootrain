@@ -184,6 +184,14 @@ def test_home(client):
     assert all("model_correct" in r for r in body["recent"])
 
 
+def test_list_teams(client):
+    teams = client.get("/api/teams").json()["teams"]
+    assert teams and {"team_id", "name", "rating"} <= set(teams[0])
+    assert any(t["team_id"] == 624 for t in teams)         # PRX present
+    ratings = [t["rating"] for t in teams if t["rating"] is not None]
+    assert ratings == sorted(ratings, reverse=True)        # strongest first
+
+
 def test_team_scouting(client):
     body = client.get("/api/teams/624/scouting").json()
     assert body["team"]["name"] == "Paper Rex"

@@ -28,6 +28,20 @@ def get_team(team_id: int, conn=Depends(get_conn)):
     return {"team": dict(t), "active_roster": [dict(r) for r in roster]}
 
 
+@router.get("/api/teams")
+def list_teams(conn=Depends(get_conn)):
+    """Tier-1 teams that have played (have an Elo rating), strongest first — for pickers."""
+    rows = conn.execute(
+        """SELECT t.team_id, t.name, t.tag,
+                  (SELECT rating FROM elo_ratings e WHERE e.team_id = t.team_id
+                   ORDER BY as_of_date DESC LIMIT 1) AS rating
+           FROM teams t
+           WHERE EXISTS (SELECT 1 FROM elo_ratings e WHERE e.team_id = t.team_id)
+           ORDER BY rating DESC"""
+    ).fetchall()
+    return {"teams": [dict(r) for r in rows]}
+
+
 @router.get("/api/teams/{team_id}/scouting")
 def get_team_scouting(team_id: int, window: int = 30, conn=Depends(get_conn)):
     """Opponent scouting report (map pool + side + economy + comps + opening duels)."""

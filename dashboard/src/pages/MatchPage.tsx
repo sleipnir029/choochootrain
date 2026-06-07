@@ -9,6 +9,7 @@ import {
 import { getMatch, type MatchView } from '../lib/api'
 import { Insight } from '../components/Insight'
 import { WinProbBar } from '../components/WinProbBar'
+import { TeamLogo, MapThumb } from '../components/Visual'
 
 function ConfChip({ c }: { c: string }) {
   const tip = c === 'sharp' ? 'big skill gap — the model is reliable here (~74% out-of-sample)'
@@ -65,11 +66,11 @@ export function MatchPage() {
     <>
       <div className="panel">
         <div className="teams-row">
-          <Link to={`/team/${d.team1.id}`} className="team-name t1">{t1}</Link>
+          <Link to={`/team/${d.team1.id}`} className="team-name t1"><TeamLogo url={d.team1.logo} name={t1} size={28} />{t1}</Link>
           <span className="scoreline">
             {d.completed ? <><span className="t1">{d.team1_score}</span>–<span className="t2">{d.team2_score}</span></> : <span className="muted">{d.format}</span>}
           </span>
-          <Link to={`/team/${d.team2.id}`} className="team-name t2">{t2}</Link>
+          <Link to={`/team/${d.team2.id}`} className="team-name t2">{t2}<TeamLogo url={d.team2.logo} name={t2} size={28} /></Link>
         </div>
         <div className="muted" style={{ textAlign: 'center', marginBottom: 6 }}>
           {[d.event, d.series_name, d.date].filter(Boolean).join(' · ')}
@@ -94,7 +95,7 @@ export function MatchPage() {
             <div className="sub" style={{ marginTop: 12 }}>Per map — {prxName} win probability</div>
             {d.prediction.map_predictions.map((m) => (
               <div className="map-row" key={m.map_name}>
-                <span className="mname">{m.map_name}</span>
+                <span className="mname"><span className="map-cell"><MapThumb map={m.map_name} h={22} />{m.map_name}</span></span>
                 <div className="mini-bar"><div style={{ width: `${Math.round(toPrx(m.team1_win_prob) * 100)}%` }} /></div>
                 <span className="mpct">{(toPrx(m.team1_win_prob) * 100).toFixed(0)}%</span>
               </div>

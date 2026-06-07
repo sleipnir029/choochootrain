@@ -6,6 +6,7 @@ import { getHome, type Hero, type Home } from '../lib/api'
 import { Insight } from '../components/Insight'
 import { WinProbBar } from '../components/WinProbBar'
 import { MatchupPicker } from '../components/MatchupPicker'
+import { TeamLogo } from '../components/Visual'
 
 function HeroCard({ hero }: { hero: Hero }) {
   if (hero.kind === 'recent') {
@@ -16,9 +17,9 @@ function HeroCard({ hero }: { hero: Hero }) {
       <Link to={`/match/${hero.match_id}`} className="hero-card">
         <div className="hero-tag">Last match</div>
         <div className="teams-row">
-          <span className="team-name t1">{t1}</span>
+          <span className="team-name t1"><TeamLogo url={hero.team1.logo} name={t1} size={24} />{t1}</span>
           <span className="scoreline"><span className="t1">{hero.team1_score}</span>–<span className="t2">{hero.team2_score}</span></span>
-          <span className="team-name t2">{t2}</span>
+          <span className="team-name t2">{t2}<TeamLogo url={hero.team2.logo} name={t2} size={24} /></span>
         </div>
         <Insight insight={hero.insight} />
         <WinProbBar p1={prxP} label1="PRX" label2={(hero.prx_side === 'team1' ? t2 : t1)} />
@@ -34,9 +35,9 @@ function HeroCard({ hero }: { hero: Hero }) {
         {p ? (
           <>
             <div className="teams-row">
-              <span className="team-name t1">{p.team1.name}</span>
+              <span className="team-name t1"><TeamLogo url={p.team1.logo} name={p.team1.name} size={24} />{p.team1.name}</span>
               <span className="muted">{p.series_format}</span>
-              <span className="team-name t2">{p.team2.name}</span>
+              <span className="team-name t2">{p.team2.name}<TeamLogo url={p.team2.logo} name={p.team2.name} size={24} /></span>
             </div>
             <Insight insight={hero.insight} />
             <WinProbBar p1={p.team1_win_prob} label1={p.team1.name ?? 'PRX'} label2={p.team2.name ?? 'Opp'} />
@@ -66,7 +67,8 @@ export function HomePage() {
 
   return (
     <>
-      <div className="prx-head">
+      <div className="prx-head team-head-logo">
+        <TeamLogo url={prx.team.logo_url} name={prx.team.name} size={38} />
         <h2>{prx.team.name}</h2>
         {prx.rank && <span className="rank-chip">#{prx.rank.rank} of {prx.rank.of} · Elo {prx.rank.rating}</span>}
       </div>

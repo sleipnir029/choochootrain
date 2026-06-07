@@ -57,6 +57,22 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Phase B (visuals): hotlink valorant-api assets via a committed manifest, not mirrored binaries
+
+**Phase / Task:** Decision-grade analytics, Phase B (visual overhaul)
+
+**Plan said:** The approved plan said to "fetch + cache a local asset pack … **mirror to repo** to avoid CDN churn" for agent icons + map art.
+
+**What was actually done:** `scripts/fetch_assets.py` fetches from valorant-api.com once and writes a small **committed JSON manifest** (`dashboard/src/assets/valorant-assets.json`, ~50 entries) of **hotlinked** `media.valorant-api.com` image URLs + map coordinate transforms. The binaries themselves are **not** committed.
+
+**Why:** The image URLs are content-addressed per-UUID (stable), and committing ~50 PNGs (several MB, incl. map splashes) to a public repo for marginal resilience is poor weight-for-value. Hotlinking valorant-api media is the ecosystem norm. The manifest keeps the name→asset mapping + minimap transforms in-repo (so a later heatmap phase needs no re-fetch); `scripts/fetch_assets.py` can be extended to download binaries locally if self-hosting is ever wanted.
+
+**Impact:** No schema change. Dashboard depends on the valorant-api CDN at render time (low risk; components degrade to text on miss). Team logos still come from the existing vlr.gg `logo_url` (protocol-normalized to https). rib.gg 2D/heatmap assets remain a Phase D gate.
+
+**Rahat approval:** plan approved (Phase B); this is a minor implementation refinement of the asset-delivery mechanism.
+
+**Related commit:** `<pending>`
+
 ### 2026-06-07 — Phase A (surface existing data): two data realities reshape the approach
 
 **Phase / Task:** Decision-grade analytics, Phase A (Rahat-directed: surface agent-comp / patch-meta / duel insights from data already ingested)
@@ -64,7 +80,7 @@ If unsure which category applies, treat it as material and ask.
 **Plan said:** The approved plan (`.claude/plans/okay-a-few-things-abstract-creek.md`) assumed flex-vs-specialist detection could draw on `player_skill` **agent-granular** rows, and that patch-windowed map/comp win-rates could be split **per patch**.
 
 **What was actually done:** Both assumptions were checked against the warehouse and corrected:
-- **`player_skill` has zero agent- or map-granular rows** (all 477 are overall: `agent IS NULL AND map_name IS NULL`). So flex/specialist is derived purely from the `map_player_stats.agent` **pool composition** (distinct-agent count, top-agent concentration) + a **static agent→role map** (29 agents in the data, incl. two non-canonical labels `Miks`/`Veto` mapped to "Unknown"). No agent-specific TrueSkill is used because it does not exist.
+- **`player_skill` has zero agent- or map-granular rows** (all 477 are overall: `agent IS NULL AND map_name IS NULL`). So flex/specialist is derived purely from the `map_player_stats.agent` **pool composition** (distinct-agent count, top-agent concentration) + a **static agent→role map** (29 agents in the data; roles later cross-checked against the Phase B valorant-api manifest — `Miks`=Controller and `Veto`=Sentinel turned out to be real newer agents, not artifacts, and were added). No agent-specific TrueSkill is used because it does not exist.
 - **Per-patch samples are too thin** (a team sees 2–18 maps per patch; 40 distinct patches league-wide). Single-patch win-rates would be noise, so the "meta shift" view uses a **recent-vs-prior date/era split** (anchored to the boundary patch label for context), combined with shrinkage — not per-patch breakdowns.
 
 **Why:** Direct DB probe (2026-06-07) of `player_skill` granularity and the patch×maps distribution for team 624.

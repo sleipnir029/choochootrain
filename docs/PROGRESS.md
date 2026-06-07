@@ -175,6 +175,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Phase B: visual overhaul (agent icons, map art, team logos, role emblems)
+
+**Done:** Replaced the numbers-only scouting/match UI with real Valorant visuals, sourced free from valorant-api + vlr.gg.
+- **Asset manifest (B1):** `scripts/fetch_assets.py` → committed `dashboard/src/assets/valorant-assets.json` (29 agents: icon + role + role emblem; 24 maps: splash + top-down minimap + listview + the 4 minimap coordinate transforms). Hotlinked CDN URLs, not mirrored binaries (DEVIATIONS). Cross-check revealed `Miks`/`Veto` are **real** agents (Controller/Sentinel) — fixed the Phase A `AGENT_ROLES` map accordingly.
+- **Helpers + primitives (B2):** `dashboard/src/lib/assets.ts` (name→asset resolver with KAY/O alias + `teamLogo` https-normalizer) and `components/Visual.tsx` (`AgentIcon`, `RoleIcon`, `TeamLogo`, `MapThumb`, `Comp`) — all degrade to text on a manifest miss. CSS block in `index.css`.
+- **Redesign (B3):** team logos in every header/scoreline (Home, Team, Matchup, Match), **agent-icon comps** + agent-pool icons + styled role tags on Team page, **map thumbnails** in map pool / meta-shift / map-edge / per-map grids, and a new **"likely comps"** panel (agent icons per map, both teams) on the Matchup page. Narrative-first PRX-centric layout preserved.
+
+**Learned or surprised:** valorant-api is a clean single source for icons + minimaps + the `xMultiplier/yMultiplier/xScalarToAdd/yScalarToAdd` transforms (captured now for future kill-coordinate heatmaps). My knowledge cutoff missed two 2026 agents (Miks, Veto) — the manifest caught it. Hotlinking beats committing MB of PNGs to a public repo.
+
+**Verification:** `tsc --noEmit` clean; `vite build` ok (695 modules; chunk-size warning is pre-existing recharts weight). Manifest covers all 12 warehouse maps + all agents (KAY/O via alias). Python suite unaffected (`test_scouting` + `test_api` = 25 passed) after the `AGENT_ROLES` fix.
+
+**Files touched:** `scripts/fetch_assets.py` (new), `dashboard/src/assets/valorant-assets.json` (new), `dashboard/src/lib/assets.ts` (new), `dashboard/src/components/Visual.tsx` (new), `dashboard/src/index.css`, `dashboard/tsconfig.app.json`, `dashboard/src/pages/{HomePage,TeamPage,MatchupPage,MatchPage}.tsx`, `models/scouting.py` (AGENT_ROLES fix), `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `decision-grade.phaseB: agent/map/logo visuals from a valorant-api manifest`
+
 ### 2026-06-07 — Phase A: surface existing data (agent comps / flex-specialist, meta shift, shrinkage, richer matchup narrative)
 
 **Done:** Turned data we already ingest into decision-grade insight, no new data/deps. All in `models/scouting.py` + the API/insight layer + minimal Team/Matchup rendering (Phase B makes it visual):

@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { getTeamScouting, type TeamScouting } from '../lib/api'
+import { AgentIcon, TeamLogo, MapThumb, Comp } from '../components/Visual'
 
 const pc = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`)
 
@@ -19,7 +20,8 @@ export function TeamPage() {
 
   return (
     <>
-      <div className="prx-head">
+      <div className="prx-head team-head-logo">
+        <TeamLogo url={s.team.logo_url} name={s.team.name} size={38} />
         <h2>{s.team.name}</h2>
         <span className="rank-chip">scouting · last {s.window_maps} maps</span>
       </div>
@@ -31,7 +33,7 @@ export function TeamPage() {
           <tbody>
             {s.map_pool.map((m) => (
               <tr key={m.map_name}>
-                <td>{m.map_name}</td><td>{m.n}</td>
+                <td><span className="map-cell"><MapThumb map={m.map_name} h={28} />{m.map_name}</span></td><td>{m.n}</td>
                 <td className={(m.win_rate_adj ?? 0) >= 0.6 ? 'over' : (m.win_rate_adj ?? 1) <= 0.4 ? 'under' : ''}>{pc(m.win_rate)}</td>
                 <td className="muted">{pc(m.ct_win_rate)}</td>
                 <td className="muted">{pc(m.t_win_rate)}</td>
@@ -54,7 +56,7 @@ export function TeamPage() {
             <tbody>
               {s.meta_shift.movers.map((mv) => (
                 <tr key={mv.map_name}>
-                  <td>{mv.map_name}</td>
+                  <td><span className="map-cell"><MapThumb map={mv.map_name} h={28} />{mv.map_name}</span></td>
                   <td className="muted">{pc(mv.prior_win_rate)} <span className="muted">({mv.prior_n})</span></td>
                   <td>{pc(mv.recent_win_rate)} <span className="muted">({mv.recent_n})</span></td>
                   <td className={mv.delta > 0 ? 'over' : 'under'}>{mv.delta > 0 ? '+' : ''}{Math.round(mv.delta * 100)}</td>
@@ -86,8 +88,8 @@ export function TeamPage() {
           <tbody>
             {s.agents.comps_by_map.map((c) => (
               <tr key={c.map_name}>
-                <td>{c.map_name}</td>
-                <td>{c.comp.join(' · ')}</td>
+                <td><span className="map-cell"><MapThumb map={c.map_name} h={28} />{c.map_name}</span></td>
+                <td><Comp comp={c.comp} size={28} /></td>
                 <td className="muted">{c.roles.map((r) => `${r.n} ${r.role}`).join(' / ')}</td>
                 <td>{c.n}</td>
                 <td className={(c.win_rate_adj ?? 0) >= 0.6 ? 'over' : (c.win_rate_adj ?? 1) <= 0.4 ? 'under' : ''}>{pc(c.win_rate)}</td>
@@ -162,10 +164,15 @@ export function TeamPage() {
               <tr key={p.handle}>
                 <td>{p.handle}</td>
                 <td>{p.profile
-                  ? <><span className="rank-chip">{p.profile.label}</span>{' '}
-                      <span className="muted">{p.profile.main_role} · {p.profile.distinct_agents} agents</span></>
+                  ? <span className={`role-tag ${p.profile.label}`}>{p.profile.label} · {p.profile.main_role} · {p.profile.distinct_agents} agents</span>
                   : <span className="muted">—</span>}</td>
-                <td className="muted">{p.agents.slice(0, 6).map((a) => `${a.agent} (${a.n})`).join(', ')}</td>
+                <td>
+                  <span className="agent-pool">
+                    {p.agents.slice(0, 6).map((a) => (
+                      <span className="ap" key={a.agent}><AgentIcon agent={a.agent} size={28} /><small>{a.n}</small></span>
+                    ))}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>

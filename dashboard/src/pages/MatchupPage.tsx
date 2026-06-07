@@ -6,6 +6,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getMatchup, type Matchup } from '../lib/api'
 import { Insight } from '../components/Insight'
 import { WinProbBar } from '../components/WinProbBar'
+import { TeamLogo, MapThumb, Comp } from '../components/Visual'
 
 const pc = (x: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`)
 
@@ -26,9 +27,9 @@ export function MatchupPage() {
     <>
       <div className="panel">
         <div className="teams-row">
-          <Link to={`/team/${m.team1.id}`} className="team-name t1">{n1}</Link>
+          <Link to={`/team/${m.team1.id}`} className="team-name t1"><TeamLogo url={m.team1.logo} name={n1} size={26} />{n1}</Link>
           <span className="muted">matchup prep</span>
-          <Link to={`/team/${m.team2.id}`} className="team-name t2">{n2}</Link>
+          <Link to={`/team/${m.team2.id}`} className="team-name t2">{n2}<TeamLogo url={m.team2.logo} name={n2} size={26} /></Link>
         </div>
         <Insight insight={m.prematch_insight} />
         <div style={{ marginTop: 10 }}>
@@ -52,7 +53,7 @@ export function MatchupPage() {
               const edge = Math.abs(diff) < 0.12 ? '' : diff > 0 ? `${n1} +${Math.round(diff * 100)}` : `${n2} +${Math.round(-diff * 100)}`
               return (
                 <tr key={e.map_name}>
-                  <td>{e.map_name}</td>
+                  <td><span className="map-cell"><MapThumb map={e.map_name} h={28} />{e.map_name}</span></td>
                   <td className={a1 >= 0.6 ? 'over' : a1 <= 0.4 ? 'under' : ''}>{pc(e.t1_win_rate)} <span className="muted">({e.t1_n})</span></td>
                   <td className={a2 >= 0.6 ? 'over' : a2 <= 0.4 ? 'under' : ''}>{pc(e.t2_win_rate)} <span className="muted">({e.t2_n})</span></td>
                   <td className={diff > 0.12 ? 'over' : diff < -0.12 ? 'under' : 'muted'}>{edge || '—'}</td>
@@ -62,6 +63,26 @@ export function MatchupPage() {
           </tbody>
         </table>
       </div>
+
+      {(m.comps1.length > 0 || m.comps2.length > 0) && (
+        <div className="panel">
+          <div className="sub">Likely comps — each team's most-run lineup per map</div>
+          <div className="veto-cols">
+            {[{ n: n1, comps: m.comps1 }, { n: n2, comps: m.comps2 }].map(({ n, comps }) => (
+              <div key={n}>
+                <div className="team-name" style={{ fontSize: 15, marginBottom: 6 }}>{n}</div>
+                {comps.slice(0, 6).map((c) => (
+                  <div key={c.map_name} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '5px 0' }}>
+                    <MapThumb map={c.map_name} h={24} />
+                    <span className="muted" style={{ minWidth: 70, fontSize: 13 }}>{c.map_name}</span>
+                    <Comp comp={c.comp} size={24} />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="panel">
         <div className="sub">Key player duels — head-to-head history between the rosters</div>

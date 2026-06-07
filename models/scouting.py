@@ -22,17 +22,18 @@ WINDOW = 30
 _NOT_SHOW = "(m.series_name IS NULL OR m.series_name NOT LIKE 'Showmatch%')"
 
 # Static agent -> role map (the 29 agents present in the warehouse, 2026). valorant-api
-# carries the canonical roles (wired in Phase B); this static map keeps Phase A free of
-# any external fetch. `Miks`/`Veto` are non-canonical labels in the data -> "Unknown".
+# carries the canonical roles (the Phase B manifest); this static map keeps the pure
+# scouting layer free of any external fetch. Roles cross-checked against the manifest —
+# `Miks` (Controller) and `Veto` (Sentinel) are real newer agents, not artifacts.
 AGENT_ROLES = {
     "Jett": "Duelist", "Raze": "Duelist", "Reyna": "Duelist", "Phoenix": "Duelist",
     "Yoru": "Duelist", "Neon": "Duelist", "Iso": "Duelist", "Waylay": "Duelist",
     "Brimstone": "Controller", "Omen": "Controller", "Viper": "Controller",
-    "Astra": "Controller", "Harbor": "Controller", "Clove": "Controller",
+    "Astra": "Controller", "Harbor": "Controller", "Clove": "Controller", "Miks": "Controller",
     "Sova": "Initiator", "Breach": "Initiator", "Skye": "Initiator", "Kayo": "Initiator",
     "Fade": "Initiator", "Gekko": "Initiator", "Tejo": "Initiator",
     "Killjoy": "Sentinel", "Cypher": "Sentinel", "Sage": "Sentinel",
-    "Chamber": "Sentinel", "Deadlock": "Sentinel", "Vyse": "Sentinel",
+    "Chamber": "Sentinel", "Deadlock": "Sentinel", "Vyse": "Sentinel", "Veto": "Sentinel",
 }
 
 

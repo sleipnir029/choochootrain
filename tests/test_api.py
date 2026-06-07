@@ -184,6 +184,16 @@ def test_home(client):
     assert all("model_correct" in r for r in body["recent"])
 
 
+def test_team_scouting(client):
+    body = client.get("/api/teams/624/scouting").json()
+    assert body["team"]["name"] == "Paper Rex"
+    assert body["window_maps"] > 0
+    assert body["map_pool"] and "ct_win_rate" in body["map_pool"][0]
+    # opening duels carry an entry win-rate per player.
+    assert body["opening_duels"]["by_player"]
+    assert "win_rate" in body["opening_duels"]["by_player"][0]
+
+
 def test_track_record(client):
     # Light: reads prediction_log (built by models.backtest). Handles both states.
     body = client.get("/api/model/track-record").json()

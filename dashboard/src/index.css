@@ -83,7 +83,8 @@ a { color: var(--team1); }
 .panel .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
 
 .teams-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.team-name { font-size: 20px; font-weight: 600; }
+.team-name { font-size: 20px; font-weight: 600; text-decoration: none; }
+a.team-name:hover { text-decoration: underline; }
 .team-name.t1 { color: var(--team1); }
 .team-name.t2 { color: var(--team2); }
 

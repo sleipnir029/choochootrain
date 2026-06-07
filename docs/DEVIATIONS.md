@@ -57,6 +57,20 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Wave B pivot: analyst scouting instead of betting/odds
+
+**Phase / Task:** Decision-grade analytics, Wave B
+
+**Context / decision:** Wave A showed the model's edge is thin and concentrated (sharp only on ~5% of maps), and tier-1 match-winner markets are efficient — so wiring an odds source for EV/CLV has limited payoff and adds a ToS-gray external dependency. Rahat pivoted Wave B to **analyst scouting** (tier-1, no external data).
+
+**What was done (slice 1, no re-ingestion):** `models/scouting.py` + `GET /api/teams/{id}/scouting` + a `/team/:id` page deliver an opponent scouting report from data **already in the warehouse**: map pool + CT/T side win-rates, economy-by-buy-type, most-run agent comp per map, player agent pools, and opening-duel (FK/FD) win rates — over a recent-N-maps window. This is the SPEC's *fan-grade* warehouse repurposed for *analyst-grade* scouting (new surface, not a spec contradiction).
+
+**Deferred (scouting tier 2):** the richer signals — **kill matrix (duel matrix), clutches, multikills, plants/defuses, and the map-veto sequence** — are scraped by vlrggapi but dropped at ingestion (DEVIATIONS 2026-06-04 P2.T6). Surfacing them needs a re-ingestion chunk (re-parse cached `/v2/match/details` into new tables). Odds/EV/CLV betting is deferred (revisit if a source is provided).
+
+**Rahat approval:** yes (chose "skip odds — do scouting").
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-07 — Decision-grade Wave A: calibration is already good; value is the regime map; `prediction_log` added
 
 **Phase / Task:** Decision-grade analytics, Wave A

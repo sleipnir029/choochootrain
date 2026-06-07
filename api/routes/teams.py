@@ -28,6 +28,20 @@ def get_team(team_id: int, conn=Depends(get_conn)):
     return {"team": dict(t), "active_roster": [dict(r) for r in roster]}
 
 
+@router.get("/api/teams/{team_id}/scouting")
+def get_team_scouting(team_id: int, window: int = 30, conn=Depends(get_conn)):
+    """Opponent scouting report (map pool + side + economy + comps + opening duels)."""
+    from models.scouting import team_scouting
+
+    t = conn.execute(
+        "SELECT team_id, name, tag, country, region, logo_url FROM teams WHERE team_id = ?",
+        (team_id,),
+    ).fetchone()
+    if t is None:
+        raise HTTPException(status_code=404, detail=f"team {team_id} not found")
+    return {"team": dict(t), **team_scouting(conn, team_id, window=window)}
+
+
 @router.get("/api/teams/{team_id}/matches")
 def get_team_matches(team_id: int, limit: int = 20, conn=Depends(get_conn)):
     """Most recent matches involving the team (completed; warehouse holds completed only)."""

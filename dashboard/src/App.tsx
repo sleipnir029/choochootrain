@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage'
 import { MatchPage } from './pages/MatchPage'
 import { PlayerPage } from './pages/PlayerPage'
 import { ModelTrustPage } from './pages/ModelTrustPage'
+import { TeamPage } from './pages/TeamPage'
 
 export default function App() {
   const live = useQuery<Live>({ queryKey: ['live'], queryFn: getLive })
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/match/:id" element={<MatchPage />} />
           <Route path="/player/:id" element={<PlayerPage />} />
+          <Route path="/team/:id" element={<TeamPage />} />
           <Route path="/model" element={<ModelTrustPage />} />
         </Routes>
       </main>

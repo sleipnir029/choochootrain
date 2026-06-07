@@ -2,7 +2,7 @@
 // completed matches the replay trace, biggest swing, and expected-vs-actual
 // ("what actually happened"). Everything is framed from PRX's perspective.
 import { useQuery } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
@@ -30,7 +30,7 @@ function ExpectedTable({ d }: { d: MatchView }) {
             const cls = d2 == null ? '' : d2 >= 25 ? 'over' : d2 <= -25 ? 'under' : ''
             return (
               <tr key={r.player_id}>
-                <td>{r.handle}</td><td>{r.expected_acs}</td><td>{r.actual_acs ?? '—'}</td>
+                <td><Link to={`/player/${r.player_id}`}>{r.handle}</Link></td><td>{r.expected_acs}</td><td>{r.actual_acs ?? '—'}</td>
                 <td className={cls}>{d2 == null ? '—' : `${d2 > 0 ? '+' : ''}${d2}`}</td>
               </tr>
             )
@@ -65,11 +65,11 @@ export function MatchPage() {
     <>
       <div className="panel">
         <div className="teams-row">
-          <span className="team-name t1">{t1}</span>
+          <Link to={`/team/${d.team1.id}`} className="team-name t1">{t1}</Link>
           <span className="scoreline">
             {d.completed ? <><span className="t1">{d.team1_score}</span>–<span className="t2">{d.team2_score}</span></> : <span className="muted">{d.format}</span>}
           </span>
-          <span className="team-name t2">{t2}</span>
+          <Link to={`/team/${d.team2.id}`} className="team-name t2">{t2}</Link>
         </div>
         <div className="muted" style={{ textAlign: 'center', marginBottom: 12 }}>
           {[d.event, d.series_name, d.date].filter(Boolean).join(' · ')}

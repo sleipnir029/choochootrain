@@ -175,6 +175,23 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Analyst scouting (Wave B, slice 1) — team scouting from existing data
+
+**Done:** Rahat pivoted Wave B from betting/odds (edge is thin on efficient tier-1 markets) to **analyst scouting** — no external dependency. First slice uses *only data already in the warehouse* (no re-ingestion): `models/scouting.py` computes, over a team's recent 30 maps — **map pool + CT/T side win-rates**, **economy efficiency** (pistol/eco/semi/full-buy win%), **most-run agent comp per map** (+win%), **agent pools per player**, and **opening-duel win rate** (FK vs FD, team + per player). `GET /api/teams/{id}/scouting` + a `/team/:id` **TeamPage**; match team-names and expected-stats player-names are now clickable (match page = nav hub).
+
+**Learned or surprised (face validity is strong):** PRX scout reads cleanly — strong on Split/Lotus (83%), weak Abyss/Corrode; Lotus T-side 70%; Split comp Jett/Omen/Raze/Skye/Viper 100% over 5; **`something` is the entry fragger (61% opening-duel win) and f0rsakeN is not (50%)**; d4v41 is the sentinel (Vyse/Killjoy), f0rsakeN the controller (Omen 17). All derived from `maps`/`map_player_stats`(agent, fk, fd)/`economy` we already had.
+
+**Verification:** `python -m models.scouting --team 624` (face-valid report); `/api/teams/624/scouting` 200; **Playwright** TeamPage renders all sections, 0 console errors; full suite **157 passed** (+3: scouting model + endpoint).
+
+**Pending (scouting tier 2 — needs re-ingestion from cached match details):** kill matrix → player duel matrix, clutches (1vX), multikills (2K–5K), plants/defuses, and the map-veto sequence (the `map_vetos` string is scraped but dropped). These are the richer scouting signals; a separate ingestion chunk.
+
+**Files touched:**
+- `models/scouting.py` (created); `api/routes/teams.py` (scouting endpoint)
+- `dashboard/src/pages/TeamPage.tsx` (created); `App.tsx`, `lib/api.ts`, `pages/MatchPage.tsx`, `index.css` (modified — routes + clickable nav)
+- `tests/test_scouting.py` (created), `tests/test_api.py` (+scouting); `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `decision-grade.scouting: team scouting from existing data`
+
 ### 2026-06-07 — Decision-grade Wave A — calibration + track-record + confidence
 
 **Done:** Started the decision-grade program. `models/calibration.py` (measure + recalibrate only if it helps), `models/backtest.py` + `prediction_log` (walk-forward out-of-sample track record + regime map), confidence tier wired into the prediction path (`predict.detailed_from_row`), `GET /api/model/track-record`, and a **"Model trust"** dashboard page (reliability curve + sharp/coinflip table + recent calls) with a confidence chip on match cards.

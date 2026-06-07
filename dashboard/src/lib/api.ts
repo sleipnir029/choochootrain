@@ -107,6 +107,21 @@ export interface TrackRecord {
 }
 export const getTrackRecord = () => http.get<TrackRecord>('/api/model/track-record').then((r) => r.data)
 
+// --- team scouting ----------------------------------------------------------
+export interface MapPoolRow { map_name: string; n: number; win_rate: number | null; ct_win_rate: number | null; t_win_rate: number | null }
+export interface CompRow { map_name: string; comp: string[]; n: number; win_rate: number | null }
+export interface AgentPool { handle: string; agents: { agent: string; n: number }[] }
+export interface DuelRow { handle: string; fk: number; fd: number; win_rate: number | null }
+export interface TeamScouting {
+  team: { team_id: number; name: string; tag: string | null; region: string | null; logo_url: string | null }
+  window_maps: number
+  map_pool: MapPoolRow[]
+  economy: { pistol: number; eco: number; semi_buy: number; full_buy: number } | null
+  agents: { by_player: AgentPool[]; comps_by_map: CompRow[] }
+  opening_duels: { team: { fk: number; fd: number; win_rate: number | null } | null; by_player: DuelRow[] }
+}
+export const getTeamScouting = (id: number) => http.get<TeamScouting>(`/api/teams/${id}/scouting`).then((r) => r.data)
+
 export const getHome = () => http.get<Home>('/api/home').then((r) => r.data)
 export const getMatch = (id: number) => http.get<MatchView>(`/api/matches/${id}`).then((r) => r.data)
 export const getPlayer = (id: number) => http.get<PlayerView>(`/api/players/${id}`).then((r) => r.data)

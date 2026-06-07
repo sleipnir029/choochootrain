@@ -64,6 +64,8 @@ export function Dumbbell({ rows, aName, bName }: {
               <span className="line" style={{ left: `${lo}%`, width: `${hi - lo}%` }} />
               <span className="dot a" style={{ left: `${ax}%` }} title={`${aName}: ${r.aText ?? ''}`} />
               <span className="dot b" style={{ left: `${bx}%` }} title={`${bName}: ${r.bText ?? ''}`} />
+              {r.aText && <span className="dv a" style={{ left: `${ax}%` }}>{r.aText}</span>}
+              {r.bText && <span className="dv b" style={{ left: `${bx}%` }}>{r.bText}</span>}
             </div>
           </div>
         )

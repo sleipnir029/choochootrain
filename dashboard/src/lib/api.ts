@@ -158,6 +158,8 @@ export interface Matchup {
   prematch_insight: Insight
   map_edge: MapEdgeRow[]
   dumbbell: DumbbellRow[]
+  form1: ('W' | 'L')[]
+  form2: ('W' | 'L')[]
   veto1: { n_matches: number; bans: VetoRow[]; picks: VetoRow[] }
   veto2: { n_matches: number; bans: VetoRow[]; picks: VetoRow[] }
   comps1: CompRow[]; comps2: CompRow[]

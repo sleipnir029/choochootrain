@@ -388,6 +388,7 @@ def head_to_head(conn, team1_id, team2_id, *, window=WINDOW):
     return {
         "map_edge": map_edge,
         "dumbbell": dumbbell,
+        "form1": s1.get("recent_form", []), "form2": s2.get("recent_form", []),
         "veto1": s1["veto"], "veto2": s2["veto"],
         "comps1": s1["agents"]["comps_by_map"], "comps2": s2["agents"]["comps_by_map"],
         "key_duels": key_duels,

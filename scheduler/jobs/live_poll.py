@@ -42,9 +42,15 @@ def _to_int(value):
 
 
 def parse_live_segment(seg):
-    """Map a /v2/match?q=live_score segment to a live_state row dict."""
+    """Map a /v2/match?q=live_score segment to a live_state row dict.
+
+    Carries the team **names** so the poller can resolve team_ids (for predicting an
+    un-ingested live match via the upcoming-feature builder) and PRX-frame it.
+    """
     return {
         "match_id": _to_int(seg.get("match_id")),
+        "team1_name": seg.get("team1"),
+        "team2_name": seg.get("team2"),
         "team1_score": _to_int(seg.get("score1")),
         "team2_score": _to_int(seg.get("score2")),
         "team1_round_ct": _to_int(seg.get("team1_round_ct")),
@@ -107,15 +113,25 @@ def select_match(segments):
     return max(segments, key=_priority_key)
 
 
+def _team_id_by_name(conn, name):
+    """Resolve a live segment's team name to a vlr team_id (case-insensitive); None if unknown."""
+    if not name:
+        return None
+    row = conn.execute("SELECT team_id FROM teams WHERE name = ? COLLATE NOCASE", (name,)).fetchone()
+    return row[0] if row else None
+
+
 def write_live_state(conn, state):
     """Singleton write: keep only the tracked match's row, stamped now (UTC)."""
     conn.execute("DELETE FROM live_state")
     conn.execute(
-        "INSERT INTO live_state (match_id, team1_score, team2_score, team1_round_ct, "
-        "team1_round_t, team2_round_ct, team2_round_t, map_number, current_map, last_updated) "
-        "VALUES (:match_id, :team1_score, :team2_score, :team1_round_ct, :team1_round_t, "
-        ":team2_round_ct, :team2_round_t, :map_number, :current_map, :last_updated)",
-        {**state, "last_updated": datetime.now(timezone.utc).isoformat(timespec="seconds")},
+        "INSERT INTO live_state (match_id, team1_id, team2_id, team1_score, team2_score, "
+        "team1_round_ct, team1_round_t, team2_round_ct, team2_round_t, map_number, current_map, "
+        "last_updated) VALUES (:match_id, :team1_id, :team2_id, :team1_score, :team2_score, "
+        ":team1_round_ct, :team1_round_t, :team2_round_ct, :team2_round_t, :map_number, "
+        ":current_map, :last_updated)",
+        {**state, "team1_id": state.get("team1_id"), "team2_id": state.get("team2_id"),
+         "last_updated": datetime.now(timezone.utc).isoformat(timespec="seconds")},
     )
     conn.commit()
 
@@ -153,18 +169,20 @@ def write_live_prediction(conn, match_id, map_index, prob):
 def make_prediction_callback(db_path="data/prx.db"):
     """Build an on_change callback that re-predicts the map and stores it.
 
-    NOTE: `predict_map_win_prob` needs the match's ingested map features, so live
-    prediction works only for matches already in the warehouse; an un-ingested live
-    match raises and is swallowed by poll_once's guard (upcoming-match prediction is
-    a Phase-6 feature). See DEVIATIONS 2026-06-06.
+    Uses `predict_live_win_prob`: an **ingested** match uses its warehouse features;
+    an **un-ingested** live match falls back to the as-of-now upcoming-feature builder
+    keyed by the resolved `team1_id/team2_id` (so a genuinely live match still gets a
+    win-prob, not a no-op). If team ids don't resolve and the match isn't ingested, it
+    raises and poll_once swallows it. See DEVIATIONS 2026-06-07.
     """
-    from models.predict import predict_map_win_prob  # heavy (bambi/arviz) — import lazily
+    from models.predict import predict_live_win_prob  # heavy (bambi/arviz) — import lazily
 
     def on_change(state, changed):
         map_index = (state.get("map_number") or 1) - 1
         live_state = to_predict_live_state(state)
-        prob = predict_map_win_prob(state["match_id"], map_index,
-                                    live_state=live_state, db_path=db_path)
+        prob = predict_live_win_prob(state["match_id"], map_index, live_state,
+                                     team_ids=(state.get("team1_id"), state.get("team2_id")),
+                                     db_path=db_path)
         conn = sqlite3.connect(db_path)
         try:
             write_live_prediction(conn, state["match_id"], map_index, prob)
@@ -194,6 +212,9 @@ async def poll_once(client, conn, last_state, on_change=None):
     if state["match_id"] is None:
         logger.warning("live_segment_missing_match_id", segment=seg)
         return None
+    # Resolve team ids (best-effort) for prediction + PRX-framing of an un-ingested match.
+    state["team1_id"] = _team_id_by_name(conn, state.get("team1_name"))
+    state["team2_id"] = _team_id_by_name(conn, state.get("team2_name"))
 
     if last_state is None or last_state.get("match_id") != state["match_id"]:
         logger.info("tracking_live_match", match_id=state["match_id"],

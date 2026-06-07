@@ -16,14 +16,20 @@ router = APIRouter()
 
 def _live_hero(conn):
     state = conn.execute(
-        "SELECT match_id, team1_round_ct, team1_round_t, team2_round_ct, team2_round_t, "
-        "map_number, current_map FROM live_state LIMIT 1"
+        "SELECT match_id, team1_id, team2_id, team1_round_ct, team1_round_t, "
+        "team2_round_ct, team2_round_t, map_number, current_map FROM live_state LIMIT 1"
     ).fetchone()
     if state is None:
         return None
-    m = conn.execute("SELECT team1_id, team2_id FROM matches WHERE match_id = ?",
-                     (state["match_id"],)).fetchone()
-    side = compute.prx_side(m["team1_id"], m["team2_id"]) if m else "team1"
+    # Prefer the live_state team ids (set by the poller, work for un-ingested matches);
+    # fall back to the matches table for an ingested live match.
+    t1id, t2id = state["team1_id"], state["team2_id"]
+    if t1id is None or t2id is None:
+        m = conn.execute("SELECT team1_id, team2_id FROM matches WHERE match_id = ?",
+                         (state["match_id"],)).fetchone()
+        if m:
+            t1id, t2id = m["team1_id"], m["team2_id"]
+    side = compute.prx_side(t1id, t2id) if t1id is not None else "team1"
     mi = (state["map_number"] or 1) - 1
     last = conn.execute(
         "SELECT team1_win_prob FROM live_predictions WHERE match_id = ? AND map_index = ? "
@@ -31,7 +37,7 @@ def _live_hero(conn):
     cur = last["team1_win_prob"] if last else None
     payload = {**dict(state), "team1_win_prob_current_map": cur}
     prx_p = None if cur is None else (cur if side == "team1" else 1 - cur)
-    opp_id = (m["team2_id"] if side == "team1" else m["team1_id"]) if m else None
+    opp_id = (t2id if side == "team1" else t1id)
     opp = conn.execute("SELECT name FROM teams WHERE team_id = ?", (opp_id,)).fetchone() if opp_id else None
     return {"kind": "live", "match_id": state["match_id"], "current_map": state["current_map"],
             "prx_win_prob": round(prx_p, 4) if prx_p is not None else None,

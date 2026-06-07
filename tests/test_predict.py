@@ -77,3 +77,17 @@ def test_unknown_map_raises():
     P._resources(_DB)  # warm cache
     with pytest.raises(ValueError):
         P.predict_map_win_prob(-1, 0, db_path=_DB)
+
+
+@integration
+def test_live_win_prob_unintested_falls_back_to_upcoming():
+    pytest.importorskip("bambi")
+    ls = {"half": "first", "team1_score": 3, "team2_score": 8, "team1_side": "ct"}
+    # Fake (un-ingested) match id; with team_ids it predicts via the upcoming builder.
+    p = P.predict_live_win_prob(99999999, 0, ls, team_ids=(188, 624), db_path=_DB)
+    assert 0.0 < p < 1.0
+    # PRX (team2) up 8-3 -> team1's win prob should be low.
+    assert p < 0.5
+    # Without resolvable team_ids and no ingested features, it raises (poll_once swallows).
+    with pytest.raises(ValueError):
+        P.predict_live_win_prob(99999999, 0, ls, db_path=_DB)

@@ -207,6 +207,8 @@ CREATE TABLE IF NOT EXISTS score_state_lookup (
 CREATE TABLE IF NOT EXISTS live_state (
     -- Singleton table; max 1 row per currently-tracked live match
     match_id INTEGER PRIMARY KEY,
+    team1_id INTEGER,                             -- resolved from the live segment name (nullable);
+    team2_id INTEGER,                             -- lets us predict + PRX-frame an un-ingested live match
     team1_score INTEGER,
     team2_score INTEGER,
     team1_round_ct INTEGER,

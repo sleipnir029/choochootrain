@@ -263,6 +263,8 @@ CREATE TABLE score_state_lookup (
 CREATE TABLE live_state (
     -- Singleton table; max 1 row per currently-tracked live match
     match_id INTEGER PRIMARY KEY,
+    team1_id INTEGER,                             -- resolved from the live segment name (nullable)
+    team2_id INTEGER,                             -- enables live prediction + PRX-framing of an un-ingested match
     team1_score INTEGER,
     team2_score INTEGER,
     team1_round_ct INTEGER,

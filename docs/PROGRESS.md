@@ -175,6 +175,21 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Live prediction gap closed (wire live path → upcoming builder)
+
+**Done:** Rahat asked to "wire the live path to the upcoming-feature builder" so a real **un-ingested** live match gets a win-prob (not just a tracked score). Added `models.predict.predict_live_win_prob` (ingested path, else upcoming-prior + score-state pool, prior cached per match). The poller now resolves the live segment's team names → `team_id`s and stores them in `live_state` (new nullable `team1_id/team2_id` columns); `make_prediction_callback` uses the new function. The home `_live_hero` reads those ids so an un-ingested live match is PRX-framed correctly.
+
+**Learned or surprised:** `predict_map_win_prob` is slightly non-deterministic for **holdout patches** (`sample_new_groups=True` samples a new patch random-effect each call) — ~±0.0002, harmless, but don't assert bit-identical. The live prior is constant per match, so caching it avoids re-running the posterior-predictive every score change.
+
+**Verification:** simulated an un-ingested match (Cloud9 vs PRX, match 99999999) through the **full** poll→resolve-ids→predict→`live_predictions`→home chain → hero "PRX lead 8-3 on Ascent — 95% to win it" (PRX-framed, opponent resolved), Playwright **0 console errors**; sim data cleared after. Full suite **145 passed** (+1 un-ingested-fallback test). `data/prx.db` `live_state` migrated with `ALTER TABLE`.
+
+**Files touched:**
+- `models/predict.py` (`predict_live_win_prob` + prior cache), `scheduler/jobs/live_poll.py` (team names → ids, callback), `api/routes/home.py` (`_live_hero` uses live_state ids)
+- `ingestion/schema.py` + `docs/ARCHITECTURE.md` §2.5 (`live_state.team1_id/team2_id`)
+- `tests/test_predict.py` (+1), `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `phase-6.revision: wire live prediction to the upcoming-feature builder`
+
 ### 2026-06-07 — P6 revision — insight-first, PRX-centric dashboard
 
 **Done:** Rahat's feedback: the dashboard was "just charts, no insight … like vlr.gg … picking players/matches by id is wasteful." Rebuilt it to the SPEC's actual vision (§1/§7.2/Layer-5) — **PRX-centric, narrative-first, click-through**. Backend: `api/insight.py` (templated narrative — pre/post/live + biggest-swing, PRX-framed, LLM-ready), `api/compute.py` + 3 **view-shaped endpoints** (`/api/home`, `/api/matches/{id}`, `/api/players/{id}`) that surface the previously-unexposed **expected-vs-actual** layer, **model-was-right/wrong** on recent matches, PRX **Elo rank**, roster **skill**, and player **percentile**. Frontend: `react-router-dom` + `pages/{Home,Match,Player}` — **ID inputs removed**, navigation by clicking recent matches / roster; `<Insight>` leads every view, charts support. Match view fully **PRX-framed** (per-map, factors "favours Paper Rex", replay rises for PRX). FastAPI **SPA fallback** + vite `base '/'` so deep links work.

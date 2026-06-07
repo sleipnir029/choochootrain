@@ -57,6 +57,24 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Live prediction wired to the upcoming-feature builder; live_state gains team ids
+
+**Phase / Task:** P6 revision (closes the live-prediction gap flagged since P3.T7 / P5.T3)
+
+**Spec said:**
+`models.predict.predict_map_win_prob` needs a match's **ingested** map features, so the P5 poller could only track a live match's **score** — a real (un-ingested) live match's win-prob no-op'd (DEVIATIONS 2026-06-06). ARCHITECTURE §2.5 `live_state` had no team columns.
+
+**What was actually done:**
+- **`models.predict.predict_live_win_prob(match_id, map_index, live_state, *, team_ids, db_path)`** — tries the ingested path; on `ValueError` (un-ingested) it builds the pre-match prior from the **as-of-now upcoming features** (`models.upcoming.predict_upcoming_win_prob`) for `team_ids=(team1_id, team2_id)` and log-odds-pools it with the score-state likelihood. The prior is constant per match, so it's cached per `(db, t1, t2)` — the Bambi posterior-predictive runs once, not per score change.
+- **Poller** (`scheduler/jobs/live_poll.py`): `parse_live_segment` now carries the team **names**; `poll_once` resolves them to `team_id`s (`teams.name COLLATE NOCASE`) and stores them; `make_prediction_callback` uses `predict_live_win_prob` with those ids. A genuinely live match now produces a win-prob instead of a no-op (still best-effort: needs both team names to resolve + the trained posterior).
+- **Schema add (material):** `live_state.team1_id`, `live_state.team2_id` (nullable, resolved from the live segment) — needed so both the prediction and the home **live hero** (`api/routes/home.py:_live_hero`) can identify/PRX-frame an un-ingested live match (whose `match_id` isn't in `matches`). Updated `ingestion/schema.py` + ARCHITECTURE §2.5; existing `data/prx.db` migrated via `ALTER TABLE ADD COLUMN` (the table is ephemeral/singleton).
+
+**Impact:** Closes the long-standing gap — the live panel/hero now shows a real win-prob for an un-ingested live match. Verified by simulating an un-ingested match (Cloud9 vs PRX) through the full poll→predict→home chain: "PRX lead 8-3 on Ascent — 95% to win it." Caveats unchanged: `team1_side` is best-effort (live_score has no side); team-name→id resolution is best-effort. Scheduler registration (running the poller in-process) is still later work.
+
+**Rahat approval:** yes (asked to "wire the live path to the upcoming-feature builder").
+
+**Related commit:** `<this commit>`
+
 ### 2026-06-07 — Dashboard redesign: insight-first, PRX-centric, view-shaped API (P6 revision)
 
 **Phase / Task:** P6 revision (post-tag, Rahat-directed)

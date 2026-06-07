@@ -123,6 +123,34 @@ def predict_map_win_prob(match_id, map_index, live_state=None, *, db_path=DB_DEF
     return combine_prior_and_state(p_prior, p_state)
 
 
+_LIVE_PRIOR_CACHE = {}
+
+
+def predict_live_win_prob(match_id, map_index, live_state, *, team_ids=None, db_path=DB_DEFAULT):
+    """Live P(team1 wins the map), for a possibly **un-ingested** live match.
+
+    If the match's map features are in the warehouse, this is exactly
+    ``predict_map_win_prob``. Otherwise (a real in-progress match not yet ingested),
+    the pre-match prior is built from the **as-of-now upcoming features** for
+    ``team_ids = (team1_id, team2_id)`` (``models.upcoming``) and pooled with the
+    score-state likelihood — closing the live-prediction gap (P3.T7/P5.T3). The
+    prior is constant for the match, so it's cached per (db, team1, team2) and the
+    Bambi posterior-predictive runs once, not once per score change.
+    """
+    try:
+        return predict_map_win_prob(match_id, map_index, live_state=live_state, db_path=db_path)
+    except ValueError:
+        if not team_ids or team_ids[0] is None or team_ids[1] is None:
+            raise
+        ck = (db_path, team_ids[0], team_ids[1])
+        prior = _LIVE_PRIOR_CACHE.get(ck)
+        if prior is None:
+            from models.upcoming import predict_upcoming_win_prob
+            prior = predict_upcoming_win_prob(team_ids[0], team_ids[1], db_path=db_path)["team1_win_prob"]
+            _LIVE_PRIOR_CACHE[ck] = prior
+        return combine_prior_and_state(prior, score_state_prob(live_state, db_path=db_path))
+
+
 # --- Detailed prediction (P6.T2): mean + credible interval + factor attribution ---
 # Used by the API/dashboard, not by the P5 live poller. The natural-language
 # explanation is a separate Phase-7 LLM call.

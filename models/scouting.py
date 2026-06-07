@@ -21,6 +21,55 @@ DB_DEFAULT = "data/prx.db"
 WINDOW = 30
 _NOT_SHOW = "(m.series_name IS NULL OR m.series_name NOT LIKE 'Showmatch%')"
 
+# Static agent -> role map (the 29 agents present in the warehouse, 2026). valorant-api
+# carries the canonical roles (wired in Phase B); this static map keeps Phase A free of
+# any external fetch. `Miks`/`Veto` are non-canonical labels in the data -> "Unknown".
+AGENT_ROLES = {
+    "Jett": "Duelist", "Raze": "Duelist", "Reyna": "Duelist", "Phoenix": "Duelist",
+    "Yoru": "Duelist", "Neon": "Duelist", "Iso": "Duelist", "Waylay": "Duelist",
+    "Brimstone": "Controller", "Omen": "Controller", "Viper": "Controller",
+    "Astra": "Controller", "Harbor": "Controller", "Clove": "Controller",
+    "Sova": "Initiator", "Breach": "Initiator", "Skye": "Initiator", "Kayo": "Initiator",
+    "Fade": "Initiator", "Gekko": "Initiator", "Tejo": "Initiator",
+    "Killjoy": "Sentinel", "Cypher": "Sentinel", "Sage": "Sentinel",
+    "Chamber": "Sentinel", "Deadlock": "Sentinel", "Vyse": "Sentinel",
+}
+
+
+def agent_role(agent):
+    return AGENT_ROLES.get(agent, "Unknown")
+
+
+def _role_profile(counter):
+    """Classify a player's agent pool from its composition alone (one-trick / flex /
+    specialist) + the role they anchor. No agent-specific skill is used — none exists in
+    the warehouse (DEVIATIONS 2026-06-07). ``counter`` = agent -> map count."""
+    total = sum(counter.values())
+    if not total:
+        return None
+    main_agent, main_n = counter.most_common(1)[0]
+    role_n = Counter()
+    for ag, c in counter.items():
+        role_n[agent_role(ag)] += c
+    main_share = main_n / total
+    # Roles the player spends a meaningful share on (>=20% of maps), Unknown excluded.
+    sig_roles = [r for r, c in role_n.items() if r != "Unknown" and c / total >= 0.20]
+    label = "one-trick" if main_share >= 0.75 else "flex" if len(sig_roles) >= 2 else "specialist"
+    return {
+        "label": label,
+        "main_agent": main_agent,
+        "main_role": role_n.most_common(1)[0][0],
+        "main_share": round(main_share, 2),
+        "distinct_agents": len(counter),
+        "roles": [{"role": r, "n": c} for r, c in role_n.most_common()],
+    }
+
+
+def _comp_roles(comp):
+    """Role composition of a 5-agent comp, e.g. [{role: Controller, n: 2}, ...]."""
+    rc = Counter(agent_role(a) for a in comp)
+    return [{"role": r, "n": n} for r, n in rc.most_common()]
+
 
 def _recent_map_ids(conn, team_id, n):
     rows = conn.execute(
@@ -35,6 +84,17 @@ def _recent_map_ids(conn, team_id, n):
 
 def _wr(w, n):
     return round(w / n, 3) if n else None
+
+
+# Empirical-Bayes shrinkage toward 0.5 so a thin sample (e.g. a 5-map map pool) isn't read
+# as hard truth. Same EB form as models.training_data.H2H_PRIOR; maps are the unit here.
+SCOUT_PRIOR = 6.0
+
+
+def _shrunk_wr(w, n, prior=SCOUT_PRIOR):
+    """Sample-size-aware win rate: pulls small-n rates toward 0.5. Raw ``win_rate`` (+ n)
+    is kept alongside for transparency; this drives ranking / edge / colour."""
+    return round((w + prior * 0.5) / (n + prior), 3) if n else None
 
 
 def map_pool(conn, team_id, map_ids):
@@ -67,6 +127,7 @@ def map_pool(conn, team_id, map_ids):
         a["t_w"] += team_t
         a["t_tot"] += team_t + opp_ct
     out = [{"map_name": k, "n": v["n"], "win_rate": _wr(v["wins"], v["n"]),
+            "win_rate_adj": _shrunk_wr(v["wins"], v["n"]),
             "ct_win_rate": _wr(v["ct_w"], v["ct_tot"]), "t_win_rate": _wr(v["t_w"], v["t_tot"])}
            for k, v in agg.items()]
     return sorted(out, key=lambda d: -d["n"])
@@ -127,10 +188,12 @@ def agents_and_duels(conn, team_id, map_ids):
     comps_by_map = []
     for name, comps in comp_stats.items():
         comp, (n, wins) = max(comps.items(), key=lambda kv: kv[1][0])
-        comps_by_map.append({"map_name": name, "comp": list(comp), "n": n, "win_rate": _wr(wins, n)})
+        comps_by_map.append({"map_name": name, "comp": list(comp), "roles": _comp_roles(comp),
+                             "n": n, "win_rate": _wr(wins, n), "win_rate_adj": _shrunk_wr(wins, n)})
     comps_by_map.sort(key=lambda d: -d["n"])
 
-    by_player = [{"handle": h, "agents": [{"agent": a, "n": c} for a, c in cnt.most_common()]}
+    by_player = [{"handle": h, "agents": [{"agent": a, "n": c} for a, c in cnt.most_common()],
+                  "profile": _role_profile(cnt)}
                  for h, cnt in sorted(pool.items())]
 
     team_fk = sum(v[0] for v in duel.values())
@@ -238,8 +301,8 @@ def head_to_head(conn, team1_id, team2_id, *, window=WINDOW):
     for name in sorted(set(p1) | set(p2), key=lambda m: -(p1.get(m, {}).get("n", 0) + p2.get(m, {}).get("n", 0))):
         a, b = p1.get(name, {}), p2.get(name, {})
         map_edge.append({"map_name": name,
-                         "t1_win_rate": a.get("win_rate"), "t1_n": a.get("n", 0),
-                         "t2_win_rate": b.get("win_rate"), "t2_n": b.get("n", 0)})
+                         "t1_win_rate": a.get("win_rate"), "t1_win_rate_adj": a.get("win_rate_adj"), "t1_n": a.get("n", 0),
+                         "t2_win_rate": b.get("win_rate"), "t2_win_rate_adj": b.get("win_rate_adj"), "t2_n": b.get("n", 0)})
 
     # Marquee duels: every time a team1 player has faced a team2 player (any match).
     h1 = _recent_handles(conn, team1_id, _recent_map_ids(conn, team1_id, window))
@@ -264,6 +327,53 @@ def head_to_head(conn, team1_id, team2_id, *, window=WINDOW):
     }
 
 
+def meta_shift(conn, team_id, *, recent_n=40, prior_n=40, min_each=2, move=0.12):
+    """Per-map win-rate shift, recent window vs the prior window — surfaces maps a team has
+    got better/worse on as the meta moved (e.g. "30% on Lotus, now 60%"). Shrunk rates so a
+    thin per-map sample doesn't manufacture a shift; each window is anchored to its patch span.
+    Per-patch splits are too thin to be meaningful here (DEVIATIONS 2026-06-07)."""
+    rows = conn.execute(
+        f"""SELECT mp.map_name, mp.winner_id, m.patch_id
+            FROM maps mp JOIN matches m ON m.match_id = mp.match_id
+            WHERE (m.team1_id = ? OR m.team2_id = ?) AND {_NOT_SHOW} AND mp.winner_id IS NOT NULL
+            ORDER BY m.date_utc DESC, mp.map_index DESC LIMIT ?""",
+        (team_id, team_id, recent_n + prior_n)).fetchall()
+    if len(rows) < recent_n + min_each:
+        return {"recent": None, "prior": None, "movers": []}
+
+    def agg(rs):
+        d = defaultdict(lambda: [0, 0])             # map_name -> [wins, n]
+        patches = set()
+        for r in rs:
+            d[r["map_name"]][0] += 1 if r["winner_id"] == team_id else 0
+            d[r["map_name"]][1] += 1
+            if r["patch_id"]:
+                patches.add(r["patch_id"])
+        return d, patches
+
+    rd, rp = agg(rows[:recent_n])
+    pd_, pp = agg(rows[recent_n:recent_n + prior_n])
+    movers = []
+    for name in set(rd) | set(pd_):
+        rw, rn = rd.get(name, [0, 0])
+        pw, pn = pd_.get(name, [0, 0])
+        if rn < min_each or pn < min_each:
+            continue
+        delta = _shrunk_wr(rw, rn) - _shrunk_wr(pw, pn)
+        if abs(delta) >= move:
+            movers.append({"map_name": name,
+                           "recent_win_rate": _wr(rw, rn), "recent_n": rn,
+                           "prior_win_rate": _wr(pw, pn), "prior_n": pn,
+                           "delta": round(delta, 3)})
+    movers.sort(key=lambda d: -abs(d["delta"]))
+
+    def span(patches):
+        return {"from": min(patches), "to": max(patches)} if patches else None
+    return {"recent": {"n": min(recent_n, len(rows)), "patches": span(rp)},
+            "prior": {"n": max(0, len(rows) - recent_n), "patches": span(pp)},
+            "movers": movers}
+
+
 def team_scouting(conn, team_id, *, window=WINDOW):
     """Full scouting report for a team over its most recent ``window`` maps."""
     map_ids = _recent_map_ids(conn, team_id, window)
@@ -277,6 +387,7 @@ def team_scouting(conn, team_id, *, window=WINDOW):
         "opening_duels": duels,
         "veto": veto_tendencies(conn, team_id),
         "impact": impact(conn, team_id),
+        "meta_shift": meta_shift(conn, team_id),
     }
 
 

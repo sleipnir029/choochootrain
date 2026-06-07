@@ -82,6 +82,41 @@ def prematch_insight(pred, subject_side, *, subject=PRX, subject_team_id=PRX_TEA
     return {"headline": headline, "points": points, "tone": tone}
 
 
+def matchup_extras(t1_name, t2_name, scout):
+    """Scouting-derived bullets for the head-to-head prep view, framed by team name (not
+    subject): the biggest sample-adjusted map edge, the marquee cross-roster duel, and each
+    team's veto lean. ``scout`` = a models.scouting.head_to_head() dict. Appended to the
+    matchup's pre-match insight points."""
+    pts = []
+    best = None
+    for e in scout.get("map_edge", []):
+        a1, a2 = e.get("t1_win_rate_adj"), e.get("t2_win_rate_adj")
+        if a1 is None or a2 is None:
+            continue
+        d = a1 - a2
+        if best is None or abs(d) > abs(best[1]):
+            best = (e["map_name"], d)
+    if best and abs(best[1]) >= 0.12:
+        mapn, d = best
+        team = t1_name if d > 0 else t2_name
+        pts.append(f"Map edge: {team} are the stronger side on {mapn} (+{round(abs(d) * 100)} adj win%).")
+
+    duels = scout.get("key_duels") or []
+    if duels:
+        top = max(duels, key=lambda x: abs(x["net"]))
+        if abs(top["net"]) >= 6:
+            win_p, lose_p, k, dd = (
+                (top["t1_player"], top["t2_player"], top["kills"], top["deaths"]) if top["net"] > 0
+                else (top["t2_player"], top["t1_player"], top["deaths"], top["kills"]))
+            pts.append(f"Duel to watch: {win_p} has the history over {lose_p} ({k}-{dd}).")
+
+    b1 = (scout.get("veto1") or {}).get("bans") or []
+    b2 = (scout.get("veto2") or {}).get("bans") or []
+    if b1 and b2:
+        pts.append(f"Veto lean: {t1_name} most-ban {b1[0]['map_name']}, {t2_name} most-ban {b2[0]['map_name']}.")
+    return pts
+
+
 def biggest_swing(maps, prx_side):
     """Largest round-to-round win-prob move (PRX perspective) across a replay."""
     best = None

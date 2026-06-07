@@ -46,13 +46,15 @@ export function MatchupPage() {
           <thead><tr><th>Map</th><th>{n1} win%</th><th>{n2} win%</th><th>Edge</th></tr></thead>
           <tbody>
             {m.map_edge.map((e) => {
-              const diff = (e.t1_win_rate ?? 0.5) - (e.t2_win_rate ?? 0.5)
+              // Edge from sample-size-adjusted rates so a thin map pool doesn't show a fake +50.
+              const a1 = e.t1_win_rate_adj ?? 0.5, a2 = e.t2_win_rate_adj ?? 0.5
+              const diff = a1 - a2
               const edge = Math.abs(diff) < 0.12 ? '' : diff > 0 ? `${n1} +${Math.round(diff * 100)}` : `${n2} +${Math.round(-diff * 100)}`
               return (
                 <tr key={e.map_name}>
                   <td>{e.map_name}</td>
-                  <td className={(e.t1_win_rate ?? 0) >= 0.6 ? 'over' : (e.t1_win_rate ?? 1) <= 0.4 ? 'under' : ''}>{pc(e.t1_win_rate)} <span className="muted">({e.t1_n})</span></td>
-                  <td className={(e.t2_win_rate ?? 0) >= 0.6 ? 'over' : (e.t2_win_rate ?? 1) <= 0.4 ? 'under' : ''}>{pc(e.t2_win_rate)} <span className="muted">({e.t2_n})</span></td>
+                  <td className={a1 >= 0.6 ? 'over' : a1 <= 0.4 ? 'under' : ''}>{pc(e.t1_win_rate)} <span className="muted">({e.t1_n})</span></td>
+                  <td className={a2 >= 0.6 ? 'over' : a2 <= 0.4 ? 'under' : ''}>{pc(e.t2_win_rate)} <span className="muted">({e.t2_n})</span></td>
                   <td className={diff > 0.12 ? 'over' : diff < -0.12 ? 'under' : 'muted'}>{edge || '—'}</td>
                 </tr>
               )

@@ -57,6 +57,24 @@ If unsure which category applies, treat it as material and ask.
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Phase A (surface existing data): two data realities reshape the approach
+
+**Phase / Task:** Decision-grade analytics, Phase A (Rahat-directed: surface agent-comp / patch-meta / duel insights from data already ingested)
+
+**Plan said:** The approved plan (`.claude/plans/okay-a-few-things-abstract-creek.md`) assumed flex-vs-specialist detection could draw on `player_skill` **agent-granular** rows, and that patch-windowed map/comp win-rates could be split **per patch**.
+
+**What was actually done:** Both assumptions were checked against the warehouse and corrected:
+- **`player_skill` has zero agent- or map-granular rows** (all 477 are overall: `agent IS NULL AND map_name IS NULL`). So flex/specialist is derived purely from the `map_player_stats.agent` **pool composition** (distinct-agent count, top-agent concentration) + a **static agent→role map** (29 agents in the data, incl. two non-canonical labels `Miks`/`Veto` mapped to "Unknown"). No agent-specific TrueSkill is used because it does not exist.
+- **Per-patch samples are too thin** (a team sees 2–18 maps per patch; 40 distinct patches league-wide). Single-patch win-rates would be noise, so the "meta shift" view uses a **recent-vs-prior date/era split** (anchored to the boundary patch label for context), combined with shrinkage — not per-patch breakdowns.
+
+**Why:** Direct DB probe (2026-06-07) of `player_skill` granularity and the patch×maps distribution for team 624.
+
+**Impact:** No schema change. Adds a static `AGENT_ROLES` map + shrinkage/role helpers in `models/scouting.py`; new scouting fields (role profiles, meta-shift, shrunk win-rates) surfaced on Team/Matchup pages and woven into the matchup narrative. Phase B (visuals) will fetch canonical roles from valorant-api and can supersede the static map.
+
+**Rahat approval:** yes (approved Phase A, then Phase B).
+
+**Related commit:** `<pending>`
+
 ### 2026-06-07 — Scouting tier-2: re-ingest the dropped match-details data (duels, clutches, veto)
 
 **Phase / Task:** Decision-grade analytics, Wave B (scouting tier-2)

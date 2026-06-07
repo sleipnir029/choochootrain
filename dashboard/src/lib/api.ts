@@ -110,19 +110,28 @@ export interface TrackRecord {
 export const getTrackRecord = () => http.get<TrackRecord>('/api/model/track-record').then((r) => r.data)
 
 // --- team scouting ----------------------------------------------------------
-export interface MapPoolRow { map_name: string; n: number; win_rate: number | null; ct_win_rate: number | null; t_win_rate: number | null }
-export interface CompRow { map_name: string; comp: string[]; n: number; win_rate: number | null }
-export interface AgentPool { handle: string; agents: { agent: string; n: number }[] }
+export interface MapPoolRow { map_name: string; n: number; win_rate: number | null; win_rate_adj: number | null; ct_win_rate: number | null; t_win_rate: number | null }
+export interface RoleCount { role: string; n: number }
+export interface CompRow { map_name: string; comp: string[]; roles: RoleCount[]; n: number; win_rate: number | null; win_rate_adj: number | null }
+export interface RoleProfile {
+  label: 'one-trick' | 'flex' | 'specialist'
+  main_agent: string; main_role: string; main_share: number; distinct_agents: number; roles: RoleCount[]
+}
+export interface AgentPool { handle: string; agents: { agent: string; n: number }[]; profile: RoleProfile | null }
 export interface DuelRow { handle: string; fk: number; fd: number; win_rate: number | null }
 export interface VetoRow { map_name: string; n: number }
 export interface ImpactRow {
   player_handle: string; clutches: number; big_clutches: number
   multikills: number; big_multikills: number; plants: number; defuses: number
 }
+export interface MetaMover { map_name: string; recent_win_rate: number | null; recent_n: number; prior_win_rate: number | null; prior_n: number; delta: number }
+export interface MetaWindow { n: number; patches: { from: string; to: string } | null }
+export interface MetaShift { recent: MetaWindow | null; prior: MetaWindow | null; movers: MetaMover[] }
 export interface TeamScouting {
   team: { team_id: number; name: string; tag: string | null; region: string | null; logo_url: string | null }
   window_maps: number
   map_pool: MapPoolRow[]
+  meta_shift: MetaShift
   economy: { pistol: number; eco: number; semi_buy: number; full_buy: number } | null
   agents: { by_player: AgentPool[]; comps_by_map: CompRow[] }
   opening_duels: { team: { fk: number; fd: number; win_rate: number | null } | null; by_player: DuelRow[] }
@@ -135,7 +144,7 @@ export interface TeamListItem { team_id: number; name: string; tag: string | nul
 export const getTeams = () => http.get<{ teams: TeamListItem[] }>('/api/teams').then((r) => r.data.teams)
 
 // --- head-to-head matchup ---------------------------------------------------
-export interface MapEdgeRow { map_name: string; t1_win_rate: number | null; t1_n: number; t2_win_rate: number | null; t2_n: number }
+export interface MapEdgeRow { map_name: string; t1_win_rate: number | null; t1_win_rate_adj: number | null; t1_n: number; t2_win_rate: number | null; t2_win_rate_adj: number | null; t2_n: number }
 export interface KeyDuel { t1_player: string; t2_player: string; kills: number; deaths: number; net: number }
 export interface Matchup {
   team1: TeamBrief; team2: TeamBrief

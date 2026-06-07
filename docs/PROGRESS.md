@@ -175,6 +175,22 @@ Running log of work done on PRX Predictor. Updated by Claude Code after every ta
 
 *Newest at top. Don't edit old entries.*
 
+### 2026-06-07 — Phase A: surface existing data (agent comps / flex-specialist, meta shift, shrinkage, richer matchup narrative)
+
+**Done:** Turned data we already ingest into decision-grade insight, no new data/deps. All in `models/scouting.py` + the API/insight layer + minimal Team/Matchup rendering (Phase B makes it visual):
+- **Flex vs specialist + role profiles (A1):** static `AGENT_ROLES` map (29 agents) → per-player `profile` (one-trick / flex / specialist, main role, distinct-agent count) and per-comp **role composition** (e.g. "2 Controller / 2 Duelist / 1 Init"). Derived from `map_player_stats.agent` pool composition (no agent-specific skill — none exists; DEVIATIONS).
+- **Thin-sample shrinkage (A2):** `_shrunk_wr` (empirical-Bayes toward 0.5, `SCOUT_PRIOR=6`, same form as `H2H_PRIOR`). Added `win_rate_adj` to map pool, comps, and `map_edge` (raw `win_rate` + `n` kept for transparency). Map-edge + table colours now driven by the adjusted rate, so a 5-0 sample no longer screams a fake +43 edge.
+- **Meta shift (A3):** `meta_shift()` — per-map win-rate, recent vs prior recency window (shrunk), flags movers ≥12pt, anchored to each window's patch span. Per-patch splits are too thin to be meaningful (DEVIATIONS).
+- **Richer matchup narrative (A4):** `insight.matchup_extras()` appends biggest sample-adjusted **map edge**, the marquee **cross-roster duel**, and each team's **veto lean** to the matchup pre-match insight.
+
+**Learned or surprised:** Two plan assumptions were wrong and got corrected against the DB (DEVIATIONS 2026-06-07): `player_skill` has **zero** agent/map-granular rows (flex/specialist is pool-composition only), and per-patch samples are 2–18 maps (meta shift must use date/era windows + shrinkage). Face-valid output: f0rsakeN = flex (6 agents, Controller main), invy = pure-Initiator specialist; **PRX Lotus 33%→83%**, FNATIC Haven 71%→20%; matchup narrative now reads like an analyst's note ("Map edge: PRX stronger on Split +21; Jinggg has the history over valyn 35-24").
+
+**Verification:** `tests/test_scouting.py` +3 (shrinkage pulls small samples toward 0.5; role profile classifies one-trick/flex; meta-shift shape) → **5 passed**; full suite **162 passed**; dashboard `tsc --noEmit` clean. End-to-end `/api/matchup` for PRX-vs-G2 and FNATIC-vs-NRG show the enriched, correctly-framed narrative.
+
+**Files touched:** `models/scouting.py`, `api/insight.py`, `api/routes/matchup.py`, `dashboard/src/lib/api.ts`, `dashboard/src/pages/{TeamPage,MatchupPage}.tsx`, `tests/test_scouting.py`, `docs/DEVIATIONS.md`, `docs/PROGRESS.md`
+
+**Commit:** `<pending>` — `decision-grade.phaseA: agent-comp profiles, meta-shift, shrinkage, richer matchup narrative`
+
 ### 2026-06-07 — Fix PRX-hardcoded matchup framing (non-PRX matchups + colour/side mismatch)
 
 **Done:** Generalized the templated narrative composer off its PRX hardcoding so any matchup is framed around the *actual* teams. `api/insight.py`: `prematch_insight`/`postmatch_insight` now take `subject`/`subject_team_id` (defaulting to PRX), mirroring the existing `live_insight(subject=…)` pattern — every hardcoded `"PRX"` literal and the `PRX_TEAM_ID` watch-player filter now use the subject. Call-sites derive the subject from the real teams: `api/routes/matchup.py` (two non-PRX teams → frame around team1), `api/compute.match_view` (non-PRX *ingested* matches now get pre/post-match insight at all, framed on team1), `api/routes/home._next_hero` (explicit `subject="PRX"`). Root cause was the `side or "team1"` fallback narrating any non-PRX team1 as PRX.
